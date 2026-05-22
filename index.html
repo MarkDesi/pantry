@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -301,18 +301,86 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
   </div>
 </div>
 
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script>
-// ── FIREBASE ──────────────────────────────────────────────────────────────────
-firebase.initializeApp({databaseURL:"https://pantry-61be7-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"pantry-61be7",appId:"pantry-app"});
-const db=firebase.database();
-const REFS={
-  weekMeals:db.ref("shared/weekMeals"),checked:db.ref("shared/checked"),
-  recipes:db.ref("shared/recipes"),dismissedSuggestions:db.ref("shared/dismissedSuggestions"),
-  locked:db.ref("shared/locked"),lastWeek:db.ref("shared/lastWeek"),
-  staples:db.ref("shared/staples"),costHistory:db.ref("shared/costHistory"),
-};
+// ── FIREBASE REST API — no SDK needed, works everywhere ───────────────────────
+// Uses Firebase Realtime Database REST API with Server-Sent Events for live sync
+const FB_URL="https://pantry-61be7-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+// Write a value to a path
+async function fbSet(path,val){
+  setSyncUI("syncing");
+  try{
+    const r=await fetch(`${FB_URL}/${path}.json`,{
+      method:"PUT",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify(val)
+    });
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    setSyncUI("live");
+  }catch(e){
+    console.warn("fbSet failed:",path,e);
+    setSyncUI("connecting");
+    // Retry once after 2s
+    setTimeout(()=>fbSet(path,val),2000);
+  }
+}
+
+// Read once
+async function fbGet(path){
+  try{
+    const r=await fetch(`${FB_URL}/${path}.json`);
+    if(!r.ok) throw new Error(`HTTP ${r.status}`);
+    return await r.json();
+  }catch(e){
+    console.warn("fbGet failed:",path,e);
+    return null;
+  }
+}
+
+// Listen to a path using Server-Sent Events (Firebase streaming)
+function fbListen(path,callback){
+  const url=`${FB_URL}/${path}.json`;
+  let es,retryDelay=2000;
+
+  function connect(){
+    try{
+      es=new EventSource(url);
+      es.addEventListener("put",e=>{
+        retryDelay=2000;
+        setSyncUI("live");
+        try{
+          const data=JSON.parse(e.data);
+          // data.path tells us what changed, data.data is the value
+          callback(data.data);
+        }catch(err){console.warn("parse error",path,err);}
+      });
+      es.addEventListener("patch",e=>{
+        // partial update — re-fetch the whole thing
+        fbGet(path).then(v=>callback(v));
+      });
+      es.onerror=()=>{
+        setSyncUI("connecting");
+        es.close();
+        setTimeout(connect,retryDelay);
+        retryDelay=Math.min(retryDelay*2,30000);
+      };
+    }catch(e){
+      setSyncUI("connecting");
+      setTimeout(connect,retryDelay);
+    }
+  }
+  connect();
+}
+
+// Wrapper to match old REFS.x.on("value",...) pattern
+const REFS={};
+["weekMeals","checked","recipes","dismissedSuggestions","locked","lastWeek","staples","costHistory"].forEach(key=>{
+  REFS[key]={
+    _path:`shared/${key}`,
+    set(val){ return fbSet(`shared/${key}`,val); },
+    on(_evt,cb){ fbListen(`shared/${key}`,cb); },
+  };
+});
 
 // ── SOURCES ───────────────────────────────────────────────────────────────────
 const SOURCES={own:{label:"My Recipe",color:"#A8896C"},kic:{label:"KIC",color:"#C97B84"},rte:{label:"RecipeTin",color:"#7B9E87"},ontrac:{label:"OnTrac5",color:"#7B8CBE"},other:{label:"Other",color:"#9B8BB0"}};
@@ -415,31 +483,31 @@ render();
 // ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
 // ── FIREBASE LISTENERS — app shows immediately, data streams in ───────────────
 // No loading gate. App renders with defaults instantly, Firebase updates re-render.
-REFS.recipes.on("value",s=>{
-  try{const v=s.val();if(v)state.recipes=Array.isArray(v)?v:Object.values(v);else{REFS.recipes.set(DEFAULT_RECIPES);state.recipes=DEFAULT_RECIPES;}render();}catch(e){console.warn("recipes",e);}
+REFS.recipes.on("value",v=>{
+  try{if(v)state.recipes=Array.isArray(v)?v:Object.values(v);else{REFS.recipes.set(DEFAULT_RECIPES);state.recipes=DEFAULT_RECIPES;}render();}catch(e){console.warn("recipes",e);}
 });
-REFS.weekMeals.on("value",s=>{
-  try{const v=s.val();state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("weekMeals",e);}
+REFS.weekMeals.on("value",v=>{
+  try{state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("weekMeals",e);}
 });
-REFS.checked.on("value",s=>{
-  try{state.checked=s.val()||{};render();}catch(e){console.warn("checked",e);}
+REFS.checked.on("value",v=>{
+  try{state.checked=v||{};render();}catch(e){console.warn("checked",e);}
 });
-REFS.dismissedSuggestions.on("value",s=>{
-  try{const v=s.val();state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("dismissedSuggestions",e);}
+REFS.dismissedSuggestions.on("value",v=>{
+  try{state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("dismissedSuggestions",e);}
 });
-REFS.locked.on("value",s=>{
-  try{state.locked=!!s.val();render();}catch(e){console.warn("locked",e);}
+REFS.locked.on("value",v=>{
+  try{state.locked=!!v;render();}catch(e){console.warn("locked",e);}
 });
-REFS.lastWeek.on("value",s=>{
-  try{const v=s.val();state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("lastWeek",e);}
+REFS.lastWeek.on("value",v=>{
+  try{state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("lastWeek",e);}
 });
-REFS.staples.on("value",s=>{
-  try{const v=s.val();if(v)state.staples=Array.isArray(v)?v:Object.values(v);else{REFS.staples.set(DEFAULT_STAPLES);state.staples=DEFAULT_STAPLES;}render();}catch(e){console.warn("staples",e);}
+REFS.staples.on("value",v=>{
+  try{if(v)state.staples=Array.isArray(v)?v:Object.values(v);else{REFS.staples.set(DEFAULT_STAPLES);state.staples=DEFAULT_STAPLES;}render();}catch(e){console.warn("staples",e);}
 });
-REFS.costHistory.on("value",s=>{
-  try{const v=s.val();state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("costHistory",e);}
+REFS.costHistory.on("value",v=>{
+  try{state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("costHistory",e);}
 });
-db.ref(".info/connected").on("value",s=>{state.syncStatus=s.val()?"live":"connecting";setSyncUI(state.syncStatus);});
+
 
 function setSyncUI(st){
   const dot=document.getElementById("sync-dot"),lbl=document.getElementById("sync-label");
@@ -447,7 +515,7 @@ function setSyncUI(st){
   dot.className="sync-dot"+(st==="live"?" live":st==="syncing"?" syncing":"");
   lbl.textContent=st==="live"?"Live · Mark & Maddi":st==="syncing"?"Saving…":"Reconnecting…";
 }
-function fbSet(ref,val){setSyncUI("syncing");ref.set(val).then(()=>setSyncUI("live")).catch(()=>setSyncUI("connecting"));}
+
 
 // ── COST ESTIMATOR ────────────────────────────────────────────────────────────
 function estimateWeeklyCost(){
@@ -782,25 +850,25 @@ function removeIngRow(ak,ii){
 function updateStapleItem(si,ii,field,val){
   const updated=JSON.parse(JSON.stringify(state.staples));
   updated[si].items[ii][field]=val;
-  fbSet(REFS.staples,updated);
+  REFS.staples.set(updated);
 }
 function removeStapleItem(si,ii){
   const updated=JSON.parse(JSON.stringify(state.staples));
   updated[si].items.splice(ii,1);
-  fbSet(REFS.staples,updated);
+  REFS.staples.set(updated);
 }
 function addStapleItem(si){
   const updated=JSON.parse(JSON.stringify(state.staples));
   updated[si].items.push({n:"",q:""});
-  fbSet(REFS.staples,updated);
+  REFS.staples.set(updated);
 }
 function renameStapleSection(si){
   const name=prompt("Section name:",state.staples[si].section);
-  if(name){const updated=JSON.parse(JSON.stringify(state.staples));updated[si].section=name;fbSet(REFS.staples,updated);}
+  if(name){const updated=JSON.parse(JSON.stringify(state.staples));updated[si].section=name;REFS.staples.set(updated);}
 }
 function openAddStapleModal(){
   const name=prompt("New section name (e.g. Snacks):");
-  if(name){fbSet(REFS.staples,[...state.staples,{id:"st"+Date.now(),section:name,items:[]}]);}
+  if(name){REFS.staples.set([...state.staples,{id:"st"+Date.now(),section:name,items:[]}]);}
 }
 
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
@@ -810,38 +878,38 @@ function shuffle(){
   if(state.locked)return;
   const icon=document.getElementById("shuffle-icon");
   if(icon){icon.classList.add("spin");setTimeout(()=>icon.classList.remove("spin"),400);}
-  if(state.weekMeals.length>0)fbSet(REFS.lastWeek,state.weekMeals);
-  fbSet(REFS.weekMeals,pickMeals());fbSet(REFS.checked,{});
+  if(state.weekMeals.length>0)REFS.lastWeek.set(state.weekMeals);
+  REFS.weekMeals.set(pickMeals());REFS.checked.set({});
 }
-function toggleLock(){fbSet(REFS.locked,!state.locked);}
-function removeMealFromWeek(i){if(state.locked)return;const m=[...state.weekMeals];m.splice(i,1);fbSet(REFS.weekMeals,m);fbSet(REFS.checked,{});}
-function toggleCheck(key){fbSet(REFS.checked,{...state.checked,[key]:!state.checked[key]});}
-function resetChecked(){fbSet(REFS.checked,{});}
-function toggleRecipe(id){fbSet(REFS.recipes,state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r));}
-function deleteRecipe(id){fbSet(REFS.recipes,state.recipes.filter(r=>r.id!==id));fbSet(REFS.weekMeals,state.weekMeals.filter(m=>m.id!==id));fbSet(REFS.checked,{});}
+function toggleLock(){REFS.locked.set(!state.locked);}
+function removeMealFromWeek(i){if(state.locked)return;const m=[...state.weekMeals];m.splice(i,1);REFS.weekMeals.set(m);REFS.checked.set({});}
+function toggleCheck(key){REFS.checked.set({...state.checked,[key]:!state.checked[key]});}
+function resetChecked(){REFS.checked.set({});}
+function toggleRecipe(id){REFS.recipes.set(state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r));}
+function deleteRecipe(id){REFS.recipes.set(state.recipes.filter(r=>r.id!==id));REFS.weekMeals.set(state.weekMeals.filter(m=>m.id!==id));REFS.checked.set({});}
 function updateSearch(v){state.searchQ=v;render();const e=document.getElementById("recipe-search");if(e){e.focus();e.setSelectionRange(v.length,v.length);}}
 function addSuggestion(id){
   const s=SUGGESTIONS.find(x=>x.id===id);if(!s)return;
-  fbSet(REFS.recipes,[...state.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,ingredients:s.ingredients||{}}]);
-  fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);
+  REFS.recipes.set([...state.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,ingredients:s.ingredients||{}}]);
+  REFS.dismissedSuggestions.set([...state.dismissedSuggestions,id]);
 }
-function dismissSuggestion(id){fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);}
+function dismissSuggestion(id){REFS.dismissedSuggestions.set([...state.dismissedSuggestions,id]);}
 
 // ── DRAG & DROP ───────────────────────────────────────────────────────────────
 let dragSrc=null,dragOver=null;
 function onDragStart(e,i){if(state.locked)return;dragSrc=i;e.dataTransfer.effectAllowed="move";setTimeout(()=>{const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("dragging");},0);}
 function onDragOver(e,i){if(state.locked)return;e.preventDefault();e.dataTransfer.dropEffect="move";if(dragOver!==i){document.querySelectorAll(".meal-row").forEach(el=>el.classList.remove("drag-over"));const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("drag-over");dragOver=i;}}
-function onDrop(e,i){if(state.locked)return;e.preventDefault();if(dragSrc===null||dragSrc===i)return;const m=[...state.weekMeals];const[mv]=m.splice(dragSrc,1);m.splice(i,0,mv);fbSet(REFS.weekMeals,m);dragSrc=null;dragOver=null;}
+function onDrop(e,i){if(state.locked)return;e.preventDefault();if(dragSrc===null||dragSrc===i)return;const m=[...state.weekMeals];const[mv]=m.splice(dragSrc,1);m.splice(i,0,mv);REFS.weekMeals.set(m);dragSrc=null;dragOver=null;}
 function onDragEnd(){document.querySelectorAll(".meal-row").forEach(el=>{el.classList.remove("dragging");el.classList.remove("drag-over");});dragSrc=null;dragOver=null;}
 let tSrc=null,tEl=null,tClone=null,tStartY=0;
 document.addEventListener("touchstart",e=>{if(state.locked)return;const h=e.target.closest(".drag-handle");if(!h||h.classList.contains("locked"))return;const row=h.closest(".meal-row");if(!row)return;tSrc=parseInt(row.dataset.index);tEl=row;tStartY=e.touches[0].clientY;tClone=row.cloneNode(true);const r=row.getBoundingClientRect();tClone.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;opacity:.85;z-index:999;pointer-events:none;border-radius:14px;background:#fff;box-shadow:0 8px 32px rgba(44,32,22,.2)`;document.body.appendChild(tClone);row.style.opacity=".3";e.preventDefault();},{passive:false});
 document.addEventListener("touchmove",e=>{if(tSrc===null||!tClone)return;const dy=e.touches[0].clientY-tStartY;tClone.style.top=(tEl.getBoundingClientRect().top+dy)+"px";document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");const under=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);const tr=under?under.closest(".meal-row"):null;if(tr&&tr!==tEl)tr.style.background="var(--warm1)";e.preventDefault();},{passive:false});
-document.addEventListener("touchend",e=>{if(tSrc===null)return;if(tClone){tClone.remove();tClone=null;}if(tEl)tEl.style.opacity="";const under=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);const tr=under?under.closest(".meal-row"):null;document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");if(tr&&tr!==tEl){const ti=parseInt(tr.dataset.index);if(!isNaN(ti)&&ti!==tSrc){const m=[...state.weekMeals];const[mv]=m.splice(tSrc,1);m.splice(ti,0,mv);fbSet(REFS.weekMeals,m);}}tSrc=null;tEl=null;});
+document.addEventListener("touchend",e=>{if(tSrc===null)return;if(tClone){tClone.remove();tClone=null;}if(tEl)tEl.style.opacity="";const under=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);const tr=under?under.closest(".meal-row"):null;document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");if(tr&&tr!==tEl){const ti=parseInt(tr.dataset.index);if(!isNaN(ti)&&ti!==tSrc){const m=[...state.weekMeals];const[mv]=m.splice(tSrc,1);m.splice(ti,0,mv);REFS.weekMeals.set(m);}}tSrc=null;tEl=null;});
 
 // ── PICK MEAL MODAL ───────────────────────────────────────────────────────────
 function openPickModal(i){if(state.locked)return;state.pickDayIndex=i;document.getElementById("pick-title").innerHTML=`Add meal for <em>${DAYS[i]}</em>`;document.getElementById("pick-search-input").value="";renderPickList();document.getElementById("modal-pick").style.display="flex";setTimeout(()=>document.getElementById("pick-search-input").focus(),350);}
 function renderPickList(){const q=(document.getElementById("pick-search-input")||{}).value||"";const inWeek=new Set(state.weekMeals.map(m=>m.id));const list=state.recipes.filter(r=>{if(r.special||inWeek.has(r.id))return false;if(!q)return true;return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());});const el=document.getElementById("pick-list");if(!el)return;if(!list.length){el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No matching recipes</div>`;return;}el.innerHTML=list.map(r=>{const s=SOURCES[r.src]||SOURCES.other;return `<div class="pick-item" onclick="addMealToDay(${r.id})"><div class="pick-item-info"><div class="pick-item-name">${escHtml(r.name)}</div><div class="pick-item-tag" style="color:${s.color}">${s.label} · ${escHtml(r.tag)}</div></div><button class="pick-item-add">Add</button></div>`;}).join("");}
-function addMealToDay(id){if(state.locked)return;const recipe=state.recipes.find(r=>r.id===id);if(!recipe||state.pickDayIndex===null)return;const m=[...state.weekMeals];if(m.length>state.pickDayIndex){m.splice(state.pickDayIndex,0,recipe);if(m.length>6)m.splice(6);}else m.push(recipe);fbSet(REFS.weekMeals,m);fbSet(REFS.checked,{});closeModal("modal-pick");}
+function addMealToDay(id){if(state.locked)return;const recipe=state.recipes.find(r=>r.id===id);if(!recipe||state.pickDayIndex===null)return;const m=[...state.weekMeals];if(m.length>state.pickDayIndex){m.splice(state.pickDayIndex,0,recipe);if(m.length>6)m.splice(6);}else m.push(recipe);REFS.weekMeals.set(m);REFS.checked.set({});closeModal("modal-pick");}
 
 // ── ADD / EDIT RECIPE MODAL ───────────────────────────────────────────────────
 let scrapedIngredients={},scrapeTimer=null;
@@ -896,13 +964,13 @@ function submitRecipe(){
   if(state.editingRecipeId){
     // Update existing
     const updated=state.recipes.map(r=>r.id===state.editingRecipeId?{...r,name,tag:document.getElementById("f-tag").value.trim()||r.tag,src:state.selectedSrc,url:document.getElementById("f-url").value.trim(),ingredients:finalIngs}:r);
-    fbSet(REFS.recipes,updated);
+    REFS.recipes.set(updated);
     // Update week meals too if this recipe is in the week
     const updatedWeek=state.weekMeals.map(m=>m.id===state.editingRecipeId?{...m,name,...finalIngs?{ingredients:finalIngs}:{}}:m);
-    fbSet(REFS.weekMeals,updatedWeek);
+    REFS.weekMeals.set(updatedWeek);
   } else {
     const r={id:Date.now(),name,tag:document.getElementById("f-tag").value.trim()||"—",src:state.selectedSrc,url:document.getElementById("f-url").value.trim(),special:false,active:true,ingredients:finalIngs};
-    fbSet(REFS.recipes,[...state.recipes,r]);
+    REFS.recipes.set([...state.recipes,r]);
   }
   scrapedIngredients={};state.editingRecipeId=null;state.editingIngredients={};
   closeModal("modal-add");state.tab="recipes";render();
@@ -1050,7 +1118,7 @@ Use lowercase keys in the prices object. Round all numbers to 2 decimal places.`
       try{
         const parsed=JSON.parse(jsonMatch[0]);
         const entry={date:new Date().toLocaleDateString("en-AU",{day:"numeric",month:"short",year:"numeric"}),total:parsed.total,savings:parsed.savings||0,itemCount:parsed.itemCount||0,prices:parsed.prices||{},specials:parsed.specials||[],newStaples:parsed.newStaples||[]};
-        fbSet(REFS.costHistory,[...state.costHistory.slice(-11),entry]);
+        REFS.costHistory.set([...state.costHistory.slice(-11),entry]);
         // Show readable summary
         const textWithoutJson=text.replace(/\{[\s\S]*\}/,"").trim();
         result.innerHTML=`<strong>Receipt read ✓</strong><br><br>${textWithoutJson.replace(/\n/g,"<br>")}${parsed.specials&&parsed.specials.length?`<br><br>🏷 Specials: ${parsed.specials.join(", ")}`:""}${parsed.newStaples&&parsed.newStaples.length?`<br><br>📌 Possible new staples: ${parsed.newStaples.join(", ")}`:""}`;
