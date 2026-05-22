@@ -1,4 +1,3 @@
-cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,6 +52,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .meal-row.dragging{opacity:.35}
 .meal-row.drag-over{background:var(--warm1)}
 .drag-handle{color:var(--warm3);font-size:14px;cursor:grab;flex-shrink:0;padding:4px 2px;line-height:1;touch-action:none}
+.drag-handle.locked{cursor:default;opacity:.3}
 .meal-day{font-size:11px;font-weight:500;color:var(--text3);width:30px;flex-shrink:0}
 .meal-name-wrap{flex:1;min-width:0}
 .meal-name{font-size:14px;color:var(--text1);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -67,10 +67,31 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .meal-rest{display:flex;align-items:center;gap:10px;padding:11px 14px;border-top:1px solid var(--warm1)}
 .meal-rest .meal-day{color:var(--text3)}
 .meal-rest span{font-size:14px;color:var(--text3);font-style:italic}
-.shuffle-btn{width:100%;padding:15px;background:var(--dark);color:var(--cream);border:none;border-radius:16px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:9px;transition:opacity .15s,transform .15s}
-.shuffle-btn:active{opacity:.85;transform:scale(.98)}
+
+/* WEEK ACTION BUTTONS */
+.week-actions{display:flex;gap:8px;margin-top:12px}
+.action-btn{flex:1;padding:14px 10px;border:none;border-radius:16px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .15s,transform .15s}
+.action-btn:active{opacity:.85;transform:scale(.98)}
+.action-btn.primary{background:var(--dark);color:var(--cream)}
+.action-btn.secondary{background:var(--warm1);color:var(--text2)}
+.action-btn:disabled{opacity:.35;cursor:default;transform:none}
 .shuffle-icon{display:inline-block;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
 .shuffle-icon.spin{transform:rotate(360deg)}
+.lock-icon{font-size:15px}
+
+/* LAST WEEK BANNER */
+.last-week-card{background:#fff;border-radius:16px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 8px rgba(44,32,22,.06)}
+.last-week-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.last-week-title{font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--text3)}
+.last-week-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--warm1)}
+.last-week-row:last-child{border-bottom:none}
+.last-week-day{font-size:11px;color:var(--text3);width:30px;flex-shrink:0}
+.last-week-name{font-size:13px;color:var(--text2);flex:1}
+
+/* LOCKED BANNER */
+.locked-banner{background:var(--warm1);border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text2)}
+
+/* SHOPPING LIST */
 .progress-wrap{margin-bottom:14px}
 .progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .progress-text{font-size:12px;color:var(--text3)}
@@ -95,6 +116,8 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .fm-tag{font-size:10px;font-weight:500;background:#E3EDE3;color:var(--green);padding:2px 7px;border-radius:10px;margin-left:5px;white-space:nowrap}
 .recipe-tag-badge{font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;white-space:nowrap;display:inline-block}
 .stock-note{font-size:10px;color:var(--text3);background:var(--warm1);padding:3px 8px;border-radius:10px;text-align:right;line-height:1.35;max-width:90px;flex-shrink:0}
+
+/* RECIPES */
 .search-wrap{position:relative;margin-bottom:14px}
 .search-input{width:100%;padding:12px 14px 12px 38px;background:#fff;border:1.5px solid var(--warm2);border-radius:13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text1);outline:none;transition:border-color .15s;-webkit-appearance:none}
 .search-input:focus{border-color:var(--brown)}
@@ -125,17 +148,22 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .sug-btn.add{background:var(--dark);color:var(--cream)}
 .sug-btn.link{background:var(--warm1);color:var(--text2)}
 .sug-btn.dismiss{background:transparent;color:var(--text3);padding:7px 8px}
+
+/* FAB */
 .fab{position:fixed;bottom:calc(var(--safe-bottom) + 24px);right:calc(50% - 195px);width:54px;height:54px;background:var(--dark);color:var(--cream);border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(44,32,22,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s;z-index:40;line-height:1}
 .fab:active{transform:scale(.9)}
 @media(max-width:430px){.fab{right:20px}}
+
+/* MODALS */
 .backdrop{position:fixed;inset:0;background:rgba(44,32,22,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:90;display:flex;align-items:flex-end;justify-content:center;animation:bdIn .2s ease}
 @keyframes bdIn{from{opacity:0}to{opacity:1}}
 .sheet{width:100%;max-width:430px;background:var(--cream);border-radius:26px 26px 0 0;padding:0 20px calc(var(--safe-bottom) + 28px);animation:sheetUp .32s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto}
 .sheet::-webkit-scrollbar{display:none}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 .sheet-handle{width:38px;height:4px;background:var(--warm3);border-radius:2px;margin:12px auto 20px}
-.sheet-title{font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:var(--dark);margin-bottom:22px}
+.sheet-title{font-family:'Fraunces',serif;font-size:24px;font-weight:400;color:var(--dark);margin-bottom:6px}
 .sheet-title em{font-style:italic;color:var(--brown)}
+.sheet-sub{font-size:12px;color:var(--text3);margin-bottom:20px;line-height:1.5}
 .field-lbl{font-size:10.5px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:7px}
 .field-in{width:100%;padding:13px 14px;background:#fff;border:1.5px solid var(--warm2);border-radius:13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text1);outline:none;margin-bottom:16px;transition:border-color .15s;-webkit-appearance:none}
 .field-in:focus{border-color:var(--brown)}
@@ -146,6 +174,10 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .confirm-btn{width:100%;padding:15px;background:var(--dark);color:var(--cream);border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:500;cursor:pointer;transition:opacity .15s,transform .15s;margin-top:4px}
 .confirm-btn:disabled{opacity:.35;cursor:default}
 .confirm-btn:not(:disabled):active{opacity:.85;transform:scale(.99)}
+.scrape-status{font-size:12px;padding:10px 14px;border-radius:10px;margin-bottom:14px;display:none}
+.scrape-status.loading{background:var(--warm1);color:var(--text2);display:block}
+.scrape-status.success{background:#E3EDE3;color:var(--green);display:block}
+.scrape-status.error{background:#fdeaea;color:var(--red);display:block}
 .pick-search-wrap{position:relative;margin-bottom:14px}
 .pick-search{width:100%;padding:12px 14px 12px 38px;background:#fff;border:1.5px solid var(--warm2);border-radius:13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text1);outline:none;transition:border-color .15s;-webkit-appearance:none}
 .pick-search:focus{border-color:var(--brown)}
@@ -163,7 +195,6 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .hint{font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.5;padding:0 2px}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-icon{font-size:40px;margin-bottom:12px}
-/* loading screen */
 #loading{position:fixed;inset:0;background:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
 #loading.hidden{opacity:0;pointer-events:none}
 .loading-title{font-family:'Fraunces',serif;font-size:32px;color:var(--dark);margin-bottom:8px}
@@ -177,24 +208,14 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 </style>
 </head>
 <body>
-
-<!-- Loading screen shown while Firebase connects -->
 <div id="loading">
   <div class="loading-title"><em>Pantry</em></div>
   <div class="loading-sub">Syncing with Mark &amp; Maddi…</div>
-  <div class="loading-dots">
-    <div class="loading-dot"></div>
-    <div class="loading-dot"></div>
-    <div class="loading-dot"></div>
-  </div>
+  <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
 </div>
-
 <div id="app">
   <div class="app-header">
-    <div class="eyebrow">
-      <span class="sync-dot" id="sync-dot"></span>
-      <span id="sync-label">Connecting…</span>
-    </div>
+    <div class="eyebrow"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Connecting…</span></div>
     <div class="page-title" id="page-title"><em>This</em>&nbsp;week</div>
   </div>
   <div class="tab-bar">
@@ -210,14 +231,16 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
   <div class="sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-title">Add a <em>recipe</em></div>
+    <div class="sheet-sub">Paste a recipe URL and we'll try to fetch the title automatically. Instagram links and most recipe sites work.</div>
+    <div class="field-lbl">Recipe URL (paste first)</div>
+    <input class="field-in" id="f-url" type="url" placeholder="https://..." oninput="onUrlInput(this.value)">
+    <div class="scrape-status" id="scrape-status"></div>
     <div class="field-lbl">Recipe name *</div>
     <input class="field-in" id="f-name" placeholder="e.g. Thai Basil Chicken" oninput="validateForm()">
     <div class="field-lbl">Tags (optional)</div>
     <input class="field-in" id="f-tag" placeholder="e.g. Chicken · Asian">
     <div class="field-lbl">Source</div>
     <div class="src-picker" id="src-picker"></div>
-    <div class="field-lbl">Recipe URL (optional)</div>
-    <input class="field-in" id="f-url" type="url" placeholder="https://...">
     <button class="confirm-btn" id="confirm-btn" onclick="submitRecipe()" disabled>Add to recipe bank</button>
   </div>
 </div>
@@ -235,39 +258,29 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
   </div>
 </div>
 
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// FIREBASE CONFIG
-// ─────────────────────────────────────────────────────────────────────────────
-const firebaseConfig={
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+firebase.initializeApp({
   databaseURL:"https://pantry-61be7-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId:"pantry-61be7",
-  appId:"pantry-app"
-};
-firebase.initializeApp(firebaseConfig);
+  projectId:"pantry-61be7",appId:"pantry-app"
+});
 const db=firebase.database();
-
-// Firebase refs
 const REFS={
-  weekMeals: db.ref("shared/weekMeals"),
-  checked:   db.ref("shared/checked"),
-  recipes:   db.ref("shared/recipes"),
-  dismissedSuggestions: db.ref("shared/dismissedSuggestions"),
+  weekMeals:db.ref("shared/weekMeals"),
+  checked:db.ref("shared/checked"),
+  recipes:db.ref("shared/recipes"),
+  dismissedSuggestions:db.ref("shared/dismissedSuggestions"),
+  locked:db.ref("shared/locked"),
+  lastWeek:db.ref("shared/lastWeek"),
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SOURCES & STATIC DATA
-// ─────────────────────────────────────────────────────────────────────────────
+// ── STATIC DATA ───────────────────────────────────────────────────────────────
 const SOURCES={
-  own:   {label:"My Recipe", color:"#A8896C"},
-  kic:   {label:"KIC",       color:"#C97B84"},
-  rte:   {label:"RecipeTin", color:"#7B9E87"},
-  ontrac:{label:"OnTrac5",   color:"#7B8CBE"},
-  other: {label:"Other",     color:"#9B8BB0"},
+  own:{label:"My Recipe",color:"#A8896C"},kic:{label:"KIC",color:"#C97B84"},
+  rte:{label:"RecipeTin",color:"#7B9E87"},ontrac:{label:"OnTrac5",color:"#7B8CBE"},
+  other:{label:"Other",color:"#9B8BB0"},
 };
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
 
@@ -299,34 +312,31 @@ const STAPLES={
   fm:[{n:"Bananas",qty:"6–8"},{n:"Avocados",qty:"3"},{n:"Seasonal salad greens",qty:"1 bag"},{n:"Sourdough loaf",qty:"1 loaf"}],
   produce:[{n:"Garlic bulbs",qty:"1–2 bulbs",stock:"Check level"},{n:"Lemons",qty:"4"}],
   deli:[{n:"Chobani Greek yoghurt",qty:"2 × 700g"},{n:"Meredith goat cheese",qty:"1 jar",stock:"~40% left"}],
-  seafood:[],meat:[],
-  bakery:[{n:"Crumpets",qty:"1 pack"},{n:"Burger buns",qty:"6 pack"}],
+  seafood:[],meat:[],bakery:[{n:"Crumpets",qty:"1 pack"},{n:"Burger buns",qty:"6 pack"}],
   dairy:[{n:"Milk (full cream)",qty:"3L"},{n:"Free range eggs",qty:"~9 (18/fortnight)"},{n:"Butter",qty:"250g",stock:"~60% left"}],
   pasta:[],
   pantry:[{n:"Mutti Passata",qty:"2 bottles",stock:"Buy this week"},{n:"Chicken stock (1L)",qty:"1 carton",stock:"~45% left"},{n:"Beef stock (1L)",qty:"1 carton",stock:"~45% left"},{n:"Mingle taco seasoning",qty:"1–2 packs",stock:"1 left — buy"},{n:"Taco shells & wraps",qty:"1 pack ea."},{n:"Soy sauce",qty:"Top up if needed",stock:"~70% left"},{n:"Oyster sauce",qty:"Top up if needed",stock:"~60% left"},{n:"Olive oil",qty:"Top up if needed",stock:"~65% left"},{n:"Kewpie mayo",qty:"Top up if needed",stock:"~40% left"},{n:"Sweet chilli sauce",qty:"Top up if needed",stock:"~50% left"}],
   frozen:[{n:"Frozen raspberries",qty:"1kg bag",stock:"~35% left"},{n:"Gyoza (Woolworths)",qty:"2 packs",stock:"OUT — buy"},{n:"Your Spud Co hashbrowns",qty:"1 box"},{n:"Frozen corn",qty:"500g",stock:"~50% left"}],
   breakfast:[{n:"Weet-Bix",qty:"750g",stock:"~40% left"},{n:"Just Right (or similar)",qty:"500g",stock:"~30% left"},{n:"Honey",qty:"500g",stock:"~55% left"},{n:"Bega Smooth PB",qty:"375g",stock:"~45% left"}],
 };
-
 const AISLES=[
-  {key:"fm",       name:"Farmers Market",      color:"#5C7A5E"},
-  {key:"produce",  name:"Fresh Produce",        color:"#7B9E87"},
-  {key:"deli",     name:"Deli",                 color:"#9B8BB0"},
-  {key:"seafood",  name:"Seafood",              color:"#4A6B8A"},
-  {key:"meat",     name:"Meat",                 color:"#B85A5A"},
-  {key:"bakery",   name:"Bakery",               color:"#A8896C"},
-  {key:"dairy",    name:"Dairy & Eggs",         color:"#7B9E87"},
-  {key:"pasta",    name:"Pasta, Rice & Grains", color:"#7B8CBE"},
-  {key:"pantry",   name:"Sauces & Pantry",      color:"#9B8070"},
-  {key:"frozen",   name:"Frozen",               color:"#4A6B8A"},
-  {key:"breakfast",name:"Breakfast & Cereal",   color:"#C97B84"},
+  {key:"fm",name:"Farmers Market",color:"#5C7A5E"},
+  {key:"produce",name:"Fresh Produce",color:"#7B9E87"},
+  {key:"deli",name:"Deli",color:"#9B8BB0"},
+  {key:"seafood",name:"Seafood",color:"#4A6B8A"},
+  {key:"meat",name:"Meat",color:"#B85A5A"},
+  {key:"bakery",name:"Bakery",color:"#A8896C"},
+  {key:"dairy",name:"Dairy & Eggs",color:"#7B9E87"},
+  {key:"pasta",name:"Pasta, Rice & Grains",color:"#7B8CBE"},
+  {key:"pantry",name:"Sauces & Pantry",color:"#9B8070"},
+  {key:"frozen",name:"Frozen",color:"#4A6B8A"},
+  {key:"breakfast",name:"Breakfast & Cereal",color:"#C97B84"},
 ];
-
 const SUGGESTIONS=[
   {id:"s1",name:"Honey Soy Steak Rice Bowl",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/recipes/honey-soy-steak-rice-bowl",time:"10 min",desc:"Seared steak over jasmine rice with a punchy honey-soy glaze.",ingredients:{produce:["Garlic (2 cloves)"],meat:["Eye fillet / rump steak (2 steaks)"],pasta:["Jasmine rice (1.5 cups)"],pantry:["Soy sauce","Oyster sauce","Honey","Olive oil","Salt & pepper"]}},
   {id:"s2",name:"Chicken Fajita Sweet Potato Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/chicken-fajita-sweet-potato-bowls",time:"45 min",desc:"Spiced sweet potato, smoky fajita chicken, charred capsicum, creamy lime yoghurt.",ingredients:{fm:["Capsicum (2)"],produce:["Brown onion (1)","Garlic (2 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (150g)"],pantry:["Smoked paprika","Cumin","Olive oil","Salt & pepper"]}},
   {id:"s3",name:"Vodka Chicken Pasta",tag:"Chicken · Pasta",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-vodka-chicken-pasta",time:"20 min",desc:"Rich tomato-ricotta sauce. High-protein twist on a classic.",ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Ricotta (150g)"],pasta:["Rigatoni (300g)"],pantry:["Mutti Passata (½ bottle)","Olive oil","Smoked paprika","Salt & pepper"]}},
-  {id:"s4",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no heavy cream needed.",ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Parmesan (60g)","Butter (2 tbsp)"],pasta:["Fettuccine (350g)"],pantry:["Chicken stock (500ml)","Olive oil","Salt & pepper"]}},
+  {id:"s4",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no cream needed.",ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Parmesan (60g)","Butter (2 tbsp)"],pasta:["Fettuccine (350g)"],pantry:["Chicken stock (500ml)","Olive oil","Salt & pepper"]}},
   {id:"s5",name:"Greek Chicken Gyros with Tzatziki",tag:"Chicken · Greek",src:"ontrac",url:"https://ontrac5.com/recipes/greek-chicken-gyros-with-tzatziki",time:"15 min",desc:"Herby marinated chicken, house-made tzatziki, warm pita.",ingredients:{fm:["Lebanese cucumbers (1)","Flat-leaf parsley (½ bunch)"],produce:["Garlic (3 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (200g)"],pantry:["Dried oregano","Olive oil","Cumin","Salt & pepper"]}},
   {id:"s6",name:"Chicken Pasta Bake",tag:"Chicken · Bake",src:"rte",url:"https://www.recipetineats.com/chicken-pasta-bake/",time:"45 min",desc:"Big, bubbly, cheesy bake with seasoned chicken. One dish dinner.",ingredients:{produce:["Garlic (3 cloves)","Brown onion (1)"],meat:["Chicken thighs (700g)"],dairy:["Shredded mozzarella (1.5 cups)","Parmesan (50g)","Butter (1 tbsp)"],pasta:["Penne (300g)"],pantry:["Mutti Passata (700g)","Chicken stock (250ml)","Olive oil","Smoked paprika","Salt & pepper"]}},
   {id:"s7",name:"Carne Asada Tacos w/ Chimichurri",tag:"Beef · Mexican",src:"ontrac",url:"https://ontrac5.com/recipes/carne-asada-tacos",time:"10 min",desc:"Jalapeño-lime chimichurri over seared beef in warm tortillas.",ingredients:{fm:["Flat-leaf parsley (1 bunch)"],produce:["Garlic (4 cloves)","Lemons (1)"],meat:["Eye fillet / rump steak (2 steaks)"],pantry:["Taco shells & wraps","Olive oil","Cumin","Smoked paprika","Salt & pepper"]}},
@@ -335,167 +345,99 @@ const SUGGESTIONS=[
   {id:"s10",name:"Beef, Broccoli & Edamame Rice",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/collection/dinner",time:"10 min",desc:"Lean beef stir-fried with greens and steamed rice.",ingredients:{produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],meat:["Eye fillet / rump steak (300g, sliced)"],pasta:["Basmati rice (1.5 cups)"],frozen:["Frozen edamame (1 cup)"],pantry:["Soy sauce","Oyster sauce","Olive oil","Salt & pepper"]}},
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATE — all shared keys come from Firebase, rest is local UI state
-// ─────────────────────────────────────────────────────────────────────────────
+// ── STATE ─────────────────────────────────────────────────────────────────────
 let state={
   tab:"planner",
-  recipes: DEFAULT_RECIPES,      // synced
-  weekMeals: [],                 // synced
-  checked: {},                   // synced
-  dismissedSuggestions: [],      // synced
+  recipes:DEFAULT_RECIPES,
+  weekMeals:[],
+  lastWeek:[],
+  checked:{},
+  locked:false,
+  dismissedSuggestions:[],
   selectedSrc:"own",
   searchQ:"",
   pickDayIndex:null,
-  syncStatus:"connecting",       // connecting | live | syncing
-  loaded: false,
+  syncStatus:"connecting",
+  loaded:false,
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// FIREBASE SYNC — listen to all shared keys, re-render on any change
-// ─────────────────────────────────────────────────────────────────────────────
-let syncTimeout=null;
-let loadedKeys={recipes:false, weekMeals:false, checked:false, dismissedSuggestions:false};
-
-function markLoaded(key){
-  loadedKeys[key]=true;
+// ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
+let loadedKeys={recipes:false,weekMeals:false,checked:false,dismissedSuggestions:false,locked:false,lastWeek:false};
+function markLoaded(k){
+  loadedKeys[k]=true;
   if(Object.values(loadedKeys).every(Boolean)&&!state.loaded){
     state.loaded=true;
     document.getElementById("loading").classList.add("hidden");
     render();
   }
 }
+setTimeout(()=>{if(!state.loaded){state.loaded=true;document.getElementById("loading").classList.add("hidden");render();}},4000);
 
-// If Firebase doesn't respond in 4s, show app anyway with defaults
-setTimeout(()=>{
-  if(!state.loaded){
-    state.loaded=true;
-    state.syncStatus="connecting";
-    document.getElementById("loading").classList.add("hidden");
-    render();
-  }
-},4000);
-
-// Listen: recipes
-REFS.recipes.on("value",snap=>{
-  const val=snap.val();
-  if(val){
-    // Firebase returns object with numeric keys — convert back to array
-    state.recipes=Array.isArray(val)?val:Object.values(val);
-  } else {
-    // First run — seed Firebase with defaults
-    REFS.recipes.set(DEFAULT_RECIPES);
-    state.recipes=DEFAULT_RECIPES;
-  }
-  markLoaded("recipes");
-  if(state.loaded) render();
+REFS.recipes.on("value",s=>{
+  const v=s.val();
+  if(v) state.recipes=Array.isArray(v)?v:Object.values(v);
+  else{REFS.recipes.set(DEFAULT_RECIPES);state.recipes=DEFAULT_RECIPES;}
+  markLoaded("recipes");if(state.loaded)render();
+});
+REFS.weekMeals.on("value",s=>{
+  const v=s.val();state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("weekMeals");if(state.loaded)render();
+});
+REFS.checked.on("value",s=>{state.checked=s.val()||{};markLoaded("checked");if(state.loaded)render();});
+REFS.dismissedSuggestions.on("value",s=>{
+  const v=s.val();state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("dismissedSuggestions");if(state.loaded)render();
+});
+REFS.locked.on("value",s=>{state.locked=!!s.val();markLoaded("locked");if(state.loaded)render();});
+REFS.lastWeek.on("value",s=>{
+  const v=s.val();state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("lastWeek");if(state.loaded)render();
+});
+db.ref(".info/connected").on("value",s=>{
+  const c=s.val();state.syncStatus=c?"live":"connecting";
+  setSyncUI(c?"live":"connecting");
 });
 
-// Listen: weekMeals
-REFS.weekMeals.on("value",snap=>{
-  const val=snap.val();
-  state.weekMeals=val?(Array.isArray(val)?val:Object.values(val)):[];
-  markLoaded("weekMeals");
-  if(state.loaded) render();
-});
-
-// Listen: checked items (shopping list ticks)
-REFS.checked.on("value",snap=>{
-  state.checked=snap.val()||{};
-  markLoaded("checked");
-  if(state.loaded) render();
-});
-
-// Listen: dismissed suggestions
-REFS.dismissedSuggestions.on("value",snap=>{
-  const val=snap.val();
-  state.dismissedSuggestions=val?(Array.isArray(val)?val:Object.values(val)):[];
-  markLoaded("dismissedSuggestions");
-  if(state.loaded) render();
-});
-
-// Connection status indicator
-db.ref(".info/connected").on("value",snap=>{
-  const connected=snap.val();
-  state.syncStatus=connected?"live":"connecting";
-  const dot=document.getElementById("sync-dot");
-  const lbl=document.getElementById("sync-label");
-  if(dot&&lbl){
-    dot.className="sync-dot"+(connected?" live":"");
-    lbl.textContent=connected?"Live · Mark & Maddi":"Reconnecting…";
-  }
-});
-
-// Write helpers — debounced to avoid rapid-fire writes
+function setSyncUI(status){
+  const dot=document.getElementById("sync-dot"),lbl=document.getElementById("sync-label");
+  if(!dot||!lbl)return;
+  dot.className="sync-dot"+(status==="live"?" live":status==="syncing"?" syncing":"");
+  lbl.textContent=status==="live"?"Live · Mark & Maddi":status==="syncing"?"Saving…":"Reconnecting…";
+}
 function fbSet(ref,val){
-  state.syncStatus="syncing";
-  const dot=document.getElementById("sync-dot");
-  if(dot) dot.className="sync-dot syncing";
-  ref.set(val).then(()=>{
-    state.syncStatus="live";
-    const d=document.getElementById("sync-dot");
-    if(d){d.className="sync-dot live";}
-    const l=document.getElementById("sync-label");
-    if(l) l.textContent="Live · Mark & Maddi";
-  }).catch(()=>{
-    state.syncStatus="connecting";
-    const d=document.getElementById("sync-dot");
-    if(d) d.className="sync-dot";
-  });
+  setSyncUI("syncing");
+  ref.set(val).then(()=>setSyncUI("live")).catch(()=>setSyncUI("connecting"));
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// SHOPPING LIST BUILDER
-// ─────────────────────────────────────────────────────────────────────────────
+// ── SHOPPING LIST BUILDER ─────────────────────────────────────────────────────
 function buildShoppingList(){
-  const aisleMap={};
-  AISLES.forEach(a=>{aisleMap[a.key]=[];});
-  AISLES.forEach(a=>{
-    (STAPLES[a.key]||[]).forEach(item=>{
-      aisleMap[a.key].push({...item,staple:true,recipes:[]});
-    });
-  });
+  const map={};AISLES.forEach(a=>{map[a.key]=[];});
+  AISLES.forEach(a=>{(STAPLES[a.key]||[]).forEach(item=>{map[a.key].push({...item,staple:true,recipes:[]});});});
   state.weekMeals.forEach(meal=>{
     const recipe=state.recipes.find(r=>r.id===meal.id);
-    if(!recipe||!recipe.ingredients) return;
+    if(!recipe||!recipe.ingredients)return;
     const srcColor=(SOURCES[recipe.src]||SOURCES.other).color;
     AISLES.forEach(a=>{
-      const ings=recipe.ingredients[a.key]||[];
-      ings.forEach(ingStr=>{
-        const normKey=ingStr.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[,\s]+/).slice(0,2).join(" ");
-        const existing=aisleMap[a.key].find(i=>{
-          const ek=i.n.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[,\s]+/).slice(0,2).join(" ");
-          return ek===normKey||ek.includes(normKey)||normKey.includes(ek);
-        });
-        if(existing){
-          if(!existing.recipes) existing.recipes=[];
-          if(!existing.recipes.find(r=>r.id===meal.id)) existing.recipes.push({id:meal.id,name:meal.name,color:srcColor});
-        } else {
-          aisleMap[a.key].push({n:ingStr,qty:"",staple:false,recipes:[{id:meal.id,name:meal.name,color:srcColor}]});
-        }
+      (recipe.ingredients[a.key]||[]).forEach(ingStr=>{
+        const nk=ingStr.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[,\s]+/).slice(0,2).join(" ");
+        const ex=map[a.key].find(i=>{const ek=i.n.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[,\s]+/).slice(0,2).join(" ");return ek===nk||ek.includes(nk)||nk.includes(ek);});
+        if(ex){if(!ex.recipes)ex.recipes=[];if(!ex.recipes.find(r=>r.id===meal.id))ex.recipes.push({id:meal.id,name:meal.name,color:srcColor});}
+        else map[a.key].push({n:ingStr,qty:"",staple:false,recipes:[{id:meal.id,name:meal.name,color:srcColor}]});
       });
     });
   });
-  return AISLES.map(a=>({...a,items:aisleMap[a.key]})).filter(a=>a.items.length>0);
+  return AISLES.map(a=>({...a,items:map[a.key]})).filter(a=>a.items.length>0);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RENDER
-// ─────────────────────────────────────────────────────────────────────────────
+// ── RENDER ────────────────────────────────────────────────────────────────────
 const TITLES={planner:"<em>This</em>&nbsp;week",list:"Shopping<br><em>list</em>",recipes:"Recipe<br><em>bank</em>"};
-
 function render(){
   document.getElementById("page-title").innerHTML=TITLES[state.tab];
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===state.tab));
-  const dot=document.getElementById("sync-dot");
-  const lbl=document.getElementById("sync-label");
-  if(dot&&lbl){
-    dot.className="sync-dot"+(state.syncStatus==="live"?" live":state.syncStatus==="syncing"?" syncing":"");
-    lbl.textContent=state.syncStatus==="live"?"Live · Mark & Maddi":state.syncStatus==="syncing"?"Saving…":"Reconnecting…";
-  }
+  setSyncUI(state.syncStatus);
   const area=document.getElementById("scroll-area");
-  if(state.tab==="planner") area.innerHTML=renderPlanner();
-  else if(state.tab==="list") area.innerHTML=renderList();
+  if(state.tab==="planner")area.innerHTML=renderPlanner();
+  else if(state.tab==="list")area.innerHTML=renderList();
   else area.innerHTML=renderRecipes();
   let fab=document.getElementById("fab");
   if(state.tab==="recipes"){
@@ -506,37 +448,84 @@ function render(){
 
 function renderPlanner(){
   const list=buildShoppingList();
-  const totalItems=list.reduce((a,s)=>a+s.items.length,0);
-  const fmItems=(list.find(a=>a.key==="fm")||{items:[]}).items.length;
+  const total=list.reduce((a,s)=>a+s.items.length,0);
+  const fmC=(list.find(a=>a.key==="fm")||{items:[]}).items.length;
+  const eligible=state.recipes.filter(r=>!r.special&&r.active);
   let h=`<div class="week-stats">
     <div class="stat-pill"><div class="stat-num">${state.weekMeals.length}</div><div class="stat-lbl">dinners</div></div>
-    <div class="stat-pill"><div class="stat-num">${totalItems-fmItems}</div><div class="stat-lbl">woolies</div></div>
-    <div class="stat-pill"><div class="stat-num">${fmItems}</div><div class="stat-lbl">mkt items</div></div>
-  </div>
-  <div class="meals-container" id="meals-container">`;
-  state.weekMeals.forEach((m,i)=>{
-    const s=SOURCES[m.src]||SOURCES.other;
-    h+=`<div class="meal-row" data-index="${i}" draggable="true"
-      ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})"
-      ondragend="onDragEnd()" ondrop="onDrop(event,${i})">
-      <span class="drag-handle">⠿</span>
-      <span class="meal-day">${DAYS[i]}</span>
-      <div class="meal-name-wrap"><div class="meal-name">${escHtml(m.name)}</div></div>
-      <span class="src-pill" style="background:${s.color}22;color:${s.color}">${s.label}</span>
-      <button class="meal-remove" onclick="removeMealFromWeek(${i})">✕</button>
-    </div>`;
-  });
-  for(let i=state.weekMeals.length;i<6;i++){
-    h+=`<div class="add-meal-row" onclick="openPickModal(${i})">
-      <div class="add-meal-icon">+</div>
-      <span class="add-meal-text">${DAYS[i]} — tap to add a meal</span>
-    </div>`;
+    <div class="stat-pill"><div class="stat-num">${total-fmC}</div><div class="stat-lbl">woolies</div></div>
+    <div class="stat-pill"><div class="stat-num">${fmC}</div><div class="stat-lbl">mkt items</div></div>
+  </div>`;
+
+  // Locked banner
+  if(state.locked){
+    h+=`<div class="locked-banner">🔒 <span>Week is locked — shuffle and edits are disabled</span></div>`;
   }
+
+  // Meal rows
+  h+=`<div class="meals-container" id="meals-container">`;
+
+  if(state.weekMeals.length===0){
+    // Empty state — no meals planned yet
+    h+=`<div style="padding:24px 16px;text-align:center">
+      <div style="font-size:32px;margin-bottom:10px">🍽</div>
+      <div style="font-size:14px;font-weight:500;color:var(--text1);margin-bottom:6px">No meals planned yet</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6;margin-bottom:16px">Tap Shuffle to fill the week automatically,<br>or tap a day to pick meals yourself.</div>
+    </div>`;
+    for(let i=0;i<6;i++){
+      h+=`<div class="add-meal-row" onclick="openPickModal(${i})">
+        <div class="add-meal-icon">+</div>
+        <span class="add-meal-text">${DAYS[i]} — tap to add a meal</span>
+      </div>`;
+    }
+  } else {
+    state.weekMeals.forEach((m,i)=>{
+      const s=SOURCES[m.src]||SOURCES.other;
+      h+=`<div class="meal-row" data-index="${i}" ${!state.locked?`draggable="true" ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})" ondragend="onDragEnd()" ondrop="onDrop(event,${i})"`:""}>
+        <span class="drag-handle${state.locked?" locked":""}" title="${state.locked?"Locked":"Drag to reorder"}">⠿</span>
+        <span class="meal-day">${DAYS[i]}</span>
+        <div class="meal-name-wrap"><div class="meal-name">${escHtml(m.name)}</div></div>
+        <span class="src-pill" style="background:${s.color}22;color:${s.color}">${s.label}</span>
+        ${!state.locked?`<button class="meal-remove" onclick="removeMealFromWeek(${i})">✕</button>`:`<span style="width:26px"></span>`}
+      </div>`;
+    });
+    for(let i=state.weekMeals.length;i<6;i++){
+      if(!state.locked) h+=`<div class="add-meal-row" onclick="openPickModal(${i})"><div class="add-meal-icon">+</div><span class="add-meal-text">${DAYS[i]} — tap to add a meal</span></div>`;
+    }
+  }
+
   h+=`<div class="meal-rest"><span class="meal-day">Sun</span><span>Leftovers / rest</span></div>
-  </div>
-  <button class="shuffle-btn" onclick="shuffle()">
-    <span class="shuffle-icon" id="shuffle-icon">⟳</span> Shuffle this week
-  </button>`;
+  </div>`;
+
+  // Action buttons — shuffle + lock
+  h+=`<div class="week-actions">
+    <button class="action-btn primary" onclick="shuffle()" ${state.locked?"disabled":""}>
+      <span class="shuffle-icon" id="shuffle-icon">⟳</span>
+      ${state.weekMeals.length===0?"Fill the week":"Shuffle week"}
+    </button>
+    <button class="action-btn secondary" onclick="toggleLock()" style="flex:0 0 auto;padding:14px 16px" title="${state.locked?"Unlock week":"Lock week"}">
+      <span class="lock-icon">${state.locked?"🔓":"🔒"}</span>
+    </button>
+  </div>`;
+
+  // Last week history
+  if(state.lastWeek&&state.lastWeek.length){
+    h+=`<div class="section-label" style="margin-top:20px">Last week</div>
+    <div class="last-week-card">
+      <div class="last-week-header">
+        <span class="last-week-title">Previous dinners</span>
+      </div>`;
+    state.lastWeek.forEach((m,i)=>{
+      const s=SOURCES[m.src]||SOURCES.other;
+      h+=`<div class="last-week-row">
+        <span class="last-week-day">${DAYS[i]||"—"}</span>
+        <span class="last-week-name">${escHtml(m.name)}</span>
+        <span class="src-pill" style="background:${s.color}22;color:${s.color};font-size:9px;padding:2px 6px">${s.label}</span>
+      </div>`;
+    });
+    h+=`</div>`;
+  }
+
   return h;
 }
 
@@ -545,56 +534,37 @@ function renderList(){
   const total=list.reduce((a,s)=>a+s.items.length,0);
   const done=Object.values(state.checked).filter(Boolean).length;
   const pct=total?Math.round(done/total*100):0;
-  const mealCount=state.weekMeals.length;
   let h="";
-  if(mealCount===0){
+  if(!state.weekMeals.length){
     h+=`<div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 8px rgba(44,32,22,.07);text-align:center">
       <div style="font-size:28px;margin-bottom:8px">📅</div>
       <div style="font-size:13px;font-weight:500;color:var(--text1);margin-bottom:4px">No meals planned yet</div>
-      <div style="font-size:12px;color:var(--text3);line-height:1.5">Head to the Plan tab to choose this week's dinners — your list updates live for both of you.</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">Head to Plan → Shuffle to fill the week first.</div>
     </div>`;
   } else {
     h+=`<div style="background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 8px rgba(44,32,22,.06);display:flex;align-items:center;gap:10px">
       <span style="font-size:20px">✨</span>
-      <div>
-        <div style="font-size:12px;font-weight:500;color:var(--text1)">Based on ${mealCount} meal${mealCount>1?"s":""} this week</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:1px">Ticked items sync instantly to both phones</div>
-      </div>
+      <div><div style="font-size:12px;font-weight:500;color:var(--text1)">${state.weekMeals.length} meal${state.weekMeals.length>1?"s":""} this week</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:1px">Ticks sync live to both phones</div></div>
     </div>`;
   }
-  h+=`<div class="progress-wrap">
-    <div class="progress-meta">
-      <span class="progress-text">${done} of ${total} items</span>
-      ${done>0?`<button class="reset-btn" onclick="resetChecked()">Reset</button>`:""}
-    </div>
-    <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
-  </div>`;
+  h+=`<div class="progress-wrap"><div class="progress-meta"><span class="progress-text">${done} of ${total} items</span>${done>0?`<button class="reset-btn" onclick="resetChecked()">Reset</button>`:""}</div><div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div></div>`;
   list.forEach((aisle,ai)=>{
-    if(!aisle.items.length) return;
-    h+=`<div class="aisle-block"><div class="card" style="padding:0">
-      <div class="aisle-header-row">
-        <div class="aisle-dot" style="background:${aisle.color}"></div>
-        <span class="aisle-name-txt">${aisle.name}</span>
-        <span class="aisle-count">${aisle.items.length}</span>
-      </div>`;
+    if(!aisle.items.length)return;
+    h+=`<div class="aisle-block"><div class="card" style="padding:0"><div class="aisle-header-row"><div class="aisle-dot" style="background:${aisle.color}"></div><span class="aisle-name-txt">${aisle.name}</span><span class="aisle-count">${aisle.items.length}</span></div>`;
     aisle.items.forEach((item,ii)=>{
-      const key=`${aisle.key}-${ii}`;
-      const dn=state.checked[key];
-      const isFm=aisle.key==="fm";
-      let badgeHtml="";
+      const key=`${aisle.key}-${ii}`,dn=state.checked[key];
+      let badges="";
       if(item.recipes&&item.recipes.length){
-        item.recipes.slice(0,2).forEach(r=>{
-          const short=r.name.split(" ").slice(0,2).join(" ");
-          badgeHtml+=`<span class="recipe-tag-badge" style="background:${r.color}18;color:${r.color}">${short}</span>`;
-        });
-        if(item.recipes.length>2) badgeHtml+=`<span style="font-size:10px;color:var(--text3)">+${item.recipes.length-2}</span>`;
+        item.recipes.slice(0,2).forEach(r=>{badges+=`<span class="recipe-tag-badge" style="background:${r.color}18;color:${r.color}">${r.name.split(" ").slice(0,2).join(" ")}</span>`;});
+        if(item.recipes.length>2)badges+=`<span style="font-size:10px;color:var(--text3)">+${item.recipes.length-2}</span>`;
       }
       h+=`<div class="shop-item" onclick="toggleCheck('${key}')">
         <div class="check-ring ${dn?"done":""}">${dn?"✓":""}</div>
         <div class="item-info">
-          <div class="item-nm ${dn?"done":""}">${escHtml(item.n)}${isFm?'<span class="fm-tag">FM</span>':""}</div>
+          <div class="item-nm ${dn?"done":""}">${escHtml(item.n)}${aisle.key==="fm"?'<span class="fm-tag">FM</span>':""}</div>
           ${item.qty?`<div class="item-qt">${escHtml(item.qty)}</div>`:""}
-          ${!dn&&badgeHtml?`<div class="item-sub">${badgeHtml}</div>`:""}
+          ${!dn&&badges?`<div class="item-sub">${badges}</div>`:""}
         </div>
         ${item.stock&&!dn?`<div class="stock-note">${escHtml(item.stock)}</div>`:""}
       </div>`;
@@ -608,152 +578,164 @@ function renderRecipes(){
   const q=state.searchQ.toLowerCase().trim();
   const order=["own","kic","rte","ontrac","other"];
   const visibleSuggestions=SUGGESTIONS.filter(s=>!state.dismissedSuggestions.includes(s.id));
-  let h=`<div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input class="search-input" id="recipe-search" placeholder="Search your recipes…"
-      value="${escHtml(state.searchQ)}" oninput="updateSearch(this.value)">
+  let h=`<div class="search-wrap"><span class="search-icon">🔍</span>
+    <input class="search-input" id="recipe-search" placeholder="Search your recipes…" value="${escHtml(state.searchQ)}" oninput="updateSearch(this.value)">
     ${state.searchQ?`<button class="search-clear" onclick="updateSearch('')">✕</button>`:""}
   </div>`;
-  const filtered=state.recipes.filter(r=>{
-    if(!q) return true;
-    return r.name.toLowerCase().includes(q)||r.tag.toLowerCase().includes(q)||(SOURCES[r.src]||SOURCES.other).label.toLowerCase().includes(q);
-  });
+  const filtered=state.recipes.filter(r=>!q||r.name.toLowerCase().includes(q)||r.tag.toLowerCase().includes(q)||(SOURCES[r.src]||SOURCES.other).label.toLowerCase().includes(q));
   let any=false;
-  order.forEach(srcKey=>{
-    const list=filtered.filter(r=>(r.src||"other")===srcKey);
-    if(!list.length) return;
-    any=true;
-    const s=SOURCES[srcKey];
-    h+=`<div class="section-label">${s.label}</div>`;
+  order.forEach(sk=>{
+    const list=filtered.filter(r=>(r.src||"other")===sk);if(!list.length)return;any=true;
+    const s=SOURCES[sk];h+=`<div class="section-label">${s.label}</div>`;
     list.forEach(r=>{
-      const inactive=!r.active&&!r.special;
-      const inWeek=state.weekMeals.some(m=>m.id===r.id);
+      const inactive=!r.active&&!r.special,inWeek=state.weekMeals.some(m=>m.id===r.id);
       h+=`<div class="recipe-card ${inactive?"inactive":""}">
         <div class="recipe-accent" style="background:${s.color}"></div>
         <div class="recipe-info">
           <div class="recipe-nm">${escHtml(r.name)}${r.special?" ✦":""}${inWeek?` <span style="font-size:10px;color:var(--green)">● this week</span>`:""}</div>
-          <div class="recipe-meta">
-            <span class="recipe-tag">${escHtml(r.tag)}</span>
-            ${r.url?`<a class="recipe-link" href="${r.url}" target="_blank" onclick="event.stopPropagation()">recipe ↗</a>`:""}
-          </div>
+          <div class="recipe-meta"><span class="recipe-tag">${escHtml(r.tag)}</span>${r.url?`<a class="recipe-link" href="${r.url}" target="_blank" onclick="event.stopPropagation()">recipe ↗</a>`:""}</div>
         </div>
-        ${r.special?`<button class="toggle-btn special">✦</button>`
-          :`<button class="toggle-btn ${r.active?"on":"off"}" onclick="toggleRecipe(${r.id})">${r.active?"✓":"+"}</button>`}
+        ${r.special?`<button class="toggle-btn special">✦</button>`:`<button class="toggle-btn ${r.active?"on":"off"}" onclick="toggleRecipe(${r.id})">${r.active?"✓":"+"}</button>`}
         <button class="del-btn" onclick="deleteRecipe(${r.id})">✕</button>
       </div>`;
     });
   });
-  if(!any) h+=`<div class="empty"><div class="empty-icon">🔍</div><p>No recipes match.</p></div>`;
+  if(!any)h+=`<div class="empty"><div class="empty-icon">🔍</div><p>No recipes match.</p></div>`;
   if(!q&&visibleSuggestions.length){
-    h+=`<div class="section-label" style="margin-top:28px">✨ You might like</div>
-    <div class="hint">From your favourite sources — tap Add to include in your recipe bank.</div>`;
+    h+=`<div class="section-label" style="margin-top:28px">✨ You might like</div><div class="hint">From your favourite sources — tap Add to include in your bank.</div>`;
     visibleSuggestions.forEach(s=>{
       const src=SOURCES[s.src]||SOURCES.other;
-      h+=`<div class="suggestion-card">
-        <div class="suggestion-top">
-          <div class="suggestion-info">
-            <div class="suggestion-nm">${escHtml(s.name)} <span style="font-size:10px;color:var(--text3)">· ${s.time}</span></div>
-            <div class="suggestion-desc">${escHtml(s.desc)}</div>
-          </div>
-          <span class="src-pill" style="background:${src.color}22;color:${src.color};flex-shrink:0">${src.label}</span>
-        </div>
-        <div class="suggestion-actions">
-          <button class="sug-btn add" onclick="addSuggestion('${s.id}')">+ Add recipe</button>
-          ${s.url?`<a class="sug-btn link" href="${s.url}" target="_blank">View ↗</a>`:""}
-          <button class="sug-btn dismiss" onclick="dismissSuggestion('${s.id}')">Not for us</button>
-        </div>
-      </div>`;
+      h+=`<div class="suggestion-card"><div class="suggestion-top"><div class="suggestion-info">
+        <div class="suggestion-nm">${escHtml(s.name)} <span style="font-size:10px;color:var(--text3)">· ${s.time}</span></div>
+        <div class="suggestion-desc">${escHtml(s.desc)}</div>
+      </div><span class="src-pill" style="background:${src.color}22;color:${src.color};flex-shrink:0">${src.label}</span></div>
+      <div class="suggestion-actions">
+        <button class="sug-btn add" onclick="addSuggestion('${s.id}')">+ Add recipe</button>
+        ${s.url?`<a class="sug-btn link" href="${s.url}" target="_blank">View ↗</a>`:""}
+        <button class="sug-btn dismiss" onclick="dismissSuggestion('${s.id}')">Not for us</button>
+      </div></div>`;
     });
   }
   return h;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ACTIONS — all writes go to Firebase → listeners update both phones
-// ─────────────────────────────────────────────────────────────────────────────
-function switchTab(tab){state.tab=tab;render();document.getElementById("scroll-area").scrollTop=0;}
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+function switchTab(t){state.tab=t;render();document.getElementById("scroll-area").scrollTop=0;}
 
 function pickMeals(){
-  const eligible=state.recipes.filter(r=>!r.special&&r.active);
-  return [...eligible].sort(()=>Math.random()-.5).slice(0,6);
+  const e=state.recipes.filter(r=>!r.special&&r.active);
+  return [...e].sort(()=>Math.random()-.5).slice(0,6);
 }
 
 function shuffle(){
+  if(state.locked)return;
   const icon=document.getElementById("shuffle-icon");
   if(icon){icon.classList.add("spin");setTimeout(()=>icon.classList.remove("spin"),400);}
+  // Save current week as last week before replacing
+  if(state.weekMeals.length>0) fbSet(REFS.lastWeek,state.weekMeals);
   const meals=pickMeals();
   fbSet(REFS.weekMeals,meals);
   fbSet(REFS.checked,{});
 }
 
+function toggleLock(){
+  fbSet(REFS.locked,!state.locked);
+}
+
 function removeMealFromWeek(i){
-  const meals=[...state.weekMeals];meals.splice(i,1);
-  fbSet(REFS.weekMeals,meals);
-  fbSet(REFS.checked,{});
+  if(state.locked)return;
+  const m=[...state.weekMeals];m.splice(i,1);
+  fbSet(REFS.weekMeals,m);fbSet(REFS.checked,{});
 }
-
-function toggleCheck(key){
-  const next={...state.checked,[key]:!state.checked[key]};
-  fbSet(REFS.checked,next);
-}
-
+function toggleCheck(key){fbSet(REFS.checked,{...state.checked,[key]:!state.checked[key]});}
 function resetChecked(){fbSet(REFS.checked,{});}
-
-function toggleRecipe(id){
-  const updated=state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r);
-  fbSet(REFS.recipes,updated);
-}
-
+function toggleRecipe(id){fbSet(REFS.recipes,state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r));}
 function deleteRecipe(id){
-  const updatedRecipes=state.recipes.filter(r=>r.id!==id);
-  const updatedMeals=state.weekMeals.filter(m=>m.id!==id);
-  fbSet(REFS.recipes,updatedRecipes);
-  fbSet(REFS.weekMeals,updatedMeals);
+  fbSet(REFS.recipes,state.recipes.filter(r=>r.id!==id));
+  fbSet(REFS.weekMeals,state.weekMeals.filter(m=>m.id!==id));
   fbSet(REFS.checked,{});
 }
-
-function updateSearch(v){
-  state.searchQ=v;render();
-  const el=document.getElementById("recipe-search");
-  if(el){el.focus();el.setSelectionRange(v.length,v.length);}
-}
-
+function updateSearch(v){state.searchQ=v;render();const e=document.getElementById("recipe-search");if(e){e.focus();e.setSelectionRange(v.length,v.length);}}
 function addSuggestion(id){
   const s=SUGGESTIONS.find(x=>x.id===id);if(!s)return;
-  const newR={id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,ingredients:s.ingredients||{}};
-  fbSet(REFS.recipes,[...state.recipes,newR]);
+  fbSet(REFS.recipes,[...state.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,ingredients:s.ingredients||{}}]);
   fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);
 }
+function dismissSuggestion(id){fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);}
 
-function dismissSuggestion(id){
-  fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);
+// ── URL SCRAPE (best-effort via allorigins proxy) ──────────────────────────────
+let scrapeTimer=null;
+function onUrlInput(val){
+  clearTimeout(scrapeTimer);
+  if(!val.trim()||!val.startsWith("http")){
+    showScrapeStatus("","");return;
+  }
+  scrapeTimer=setTimeout(()=>scrapeUrl(val.trim()),900);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DRAG & DROP
-// ─────────────────────────────────────────────────────────────────────────────
+async function scrapeUrl(url){
+  showScrapeStatus("loading","Fetching recipe title…");
+  try{
+    // Use allorigins CORS proxy to fetch page HTML
+    const proxy=`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+    const res=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
+    const data=await res.json();
+    const html=data.contents||"";
+    // Try og:title first, then <title>
+    let title="";
+    const ogMatch=html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)
+      ||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    if(ogMatch) title=ogMatch[1];
+    else{const t=html.match(/<title[^>]*>([^<]+)<\/title>/i);if(t)title=t[1];}
+    // Clean up common suffixes
+    title=title.replace(/\s*[|\-–—].*$/,"").replace(/&amp;/g,"&").replace(/&#039;/g,"'").trim();
+    // Detect source from URL
+    if(url.includes("recipetineats.com"))setSelectedSrc("rte");
+    else if(url.includes("ontrac5.com"))setSelectedSrc("ontrac");
+    else if(url.includes("kic"))setSelectedSrc("kic");
+    else if(url.includes("instagram.com"))setSelectedSrc("other");
+
+    if(title){
+      document.getElementById("f-name").value=title;
+      validateForm();
+      showScrapeStatus("success",`Found: "${title.substring(0,50)}${title.length>50?"…":""}"`);
+    } else {
+      showScrapeStatus("error","Couldn't read title — please type the recipe name above.");
+    }
+  }catch(e){
+    showScrapeStatus("error","Couldn't fetch that URL. Try a direct recipe link, or type the name manually.");
+  }
+}
+function showScrapeStatus(type,msg){
+  const el=document.getElementById("scrape-status");if(!el)return;
+  el.className="scrape-status"+(type?" "+type:"");
+  el.textContent=msg;
+}
+function setSelectedSrc(src){
+  state.selectedSrc=src;
+  renderSrcPicker();
+}
+
+// ── DRAG & DROP ───────────────────────────────────────────────────────────────
 let dragSrc=null,dragOver=null;
-function onDragStart(e,i){dragSrc=i;e.dataTransfer.effectAllowed="move";setTimeout(()=>{const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("dragging");},0);}
-function onDragOver(e,i){e.preventDefault();e.dataTransfer.dropEffect="move";if(dragOver!==i){document.querySelectorAll(".meal-row").forEach(el=>el.classList.remove("drag-over"));const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("drag-over");dragOver=i;}}
-function onDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;const meals=[...state.weekMeals];const[moved]=meals.splice(dragSrc,1);meals.splice(i,0,moved);fbSet(REFS.weekMeals,meals);dragSrc=null;dragOver=null;}
+function onDragStart(e,i){if(state.locked)return;dragSrc=i;e.dataTransfer.effectAllowed="move";setTimeout(()=>{const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("dragging");},0);}
+function onDragOver(e,i){if(state.locked)return;e.preventDefault();e.dataTransfer.dropEffect="move";if(dragOver!==i){document.querySelectorAll(".meal-row").forEach(el=>el.classList.remove("drag-over"));const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("drag-over");dragOver=i;}}
+function onDrop(e,i){if(state.locked)return;e.preventDefault();if(dragSrc===null||dragSrc===i)return;const m=[...state.weekMeals];const[mv]=m.splice(dragSrc,1);m.splice(i,0,mv);fbSet(REFS.weekMeals,m);dragSrc=null;dragOver=null;}
 function onDragEnd(){document.querySelectorAll(".meal-row").forEach(el=>{el.classList.remove("dragging");el.classList.remove("drag-over");});dragSrc=null;dragOver=null;}
-
-// Touch drag
 let tSrc=null,tEl=null,tClone=null,tStartY=0;
 document.addEventListener("touchstart",e=>{
-  const h=e.target.closest(".drag-handle");if(!h)return;
+  if(state.locked)return;
+  const h=e.target.closest(".drag-handle");if(!h||h.classList.contains("locked"))return;
   const row=h.closest(".meal-row");if(!row)return;
   tSrc=parseInt(row.dataset.index);tEl=row;tStartY=e.touches[0].clientY;
-  tClone=row.cloneNode(true);
-  const r=row.getBoundingClientRect();
+  tClone=row.cloneNode(true);const r=row.getBoundingClientRect();
   tClone.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;opacity:.85;z-index:999;pointer-events:none;border-radius:14px;background:#fff;box-shadow:0 8px 32px rgba(44,32,22,.2)`;
   document.body.appendChild(tClone);row.style.opacity=".3";e.preventDefault();
 },{passive:false});
 document.addEventListener("touchmove",e=>{
   if(tSrc===null||!tClone)return;
   const dy=e.touches[0].clientY-tStartY;
-  const r=tEl.getBoundingClientRect();
-  tClone.style.top=(r.top+dy)+"px";
+  tClone.style.top=(tEl.getBoundingClientRect().top+dy)+"px";
   document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");
   const under=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
   const tr=under?under.closest(".meal-row"):null;
@@ -767,22 +749,15 @@ document.addEventListener("touchend",e=>{
   const under=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
   const tr=under?under.closest(".meal-row"):null;
   document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");
-  if(tr&&tr!==tEl){
-    const ti=parseInt(tr.dataset.index);
-    if(!isNaN(ti)&&ti!==tSrc){
-      const meals=[...state.weekMeals];const[moved]=meals.splice(tSrc,1);meals.splice(ti,0,moved);
-      fbSet(REFS.weekMeals,meals);
-    }
-  }
+  if(tr&&tr!==tEl){const ti=parseInt(tr.dataset.index);if(!isNaN(ti)&&ti!==tSrc){const m=[...state.weekMeals];const[mv]=m.splice(tSrc,1);m.splice(ti,0,mv);fbSet(REFS.weekMeals,m);}}
   tSrc=null;tEl=null;
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PICK MEAL MODAL
-// ─────────────────────────────────────────────────────────────────────────────
-function openPickModal(dayIndex){
-  state.pickDayIndex=dayIndex;
-  document.getElementById("pick-title").innerHTML=`Add meal for <em>${DAYS[dayIndex]}</em>`;
+// ── PICK MEAL MODAL ───────────────────────────────────────────────────────────
+function openPickModal(i){
+  if(state.locked)return;
+  state.pickDayIndex=i;
+  document.getElementById("pick-title").innerHTML=`Add meal for <em>${DAYS[i]}</em>`;
   document.getElementById("pick-search-input").value="";
   renderPickList();
   document.getElementById("modal-pick").style.display="flex";
@@ -791,45 +766,30 @@ function openPickModal(dayIndex){
 function renderPickList(){
   const q=(document.getElementById("pick-search-input")||{}).value||"";
   const inWeek=new Set(state.weekMeals.map(m=>m.id));
-  const list=state.recipes.filter(r=>{
-    if(r.special||inWeek.has(r.id))return false;
-    if(!q)return true;
-    return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());
-  });
+  const list=state.recipes.filter(r=>{if(r.special||inWeek.has(r.id))return false;if(!q)return true;return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());});
   const el=document.getElementById("pick-list");if(!el)return;
   if(!list.length){el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No matching recipes</div>`;return;}
-  el.innerHTML=list.map(r=>{
-    const s=SOURCES[r.src]||SOURCES.other;
-    return `<div class="pick-item" onclick="addMealToDay(${r.id})">
-      <div class="pick-item-info">
-        <div class="pick-item-name">${escHtml(r.name)}</div>
-        <div class="pick-item-tag" style="color:${s.color}">${s.label} · ${escHtml(r.tag)}</div>
-      </div>
-      <button class="pick-item-add">Add</button>
-    </div>`;
-  }).join("");
+  el.innerHTML=list.map(r=>{const s=SOURCES[r.src]||SOURCES.other;return `<div class="pick-item" onclick="addMealToDay(${r.id})"><div class="pick-item-info"><div class="pick-item-name">${escHtml(r.name)}</div><div class="pick-item-tag" style="color:${s.color}">${s.label} · ${escHtml(r.tag)}</div></div><button class="pick-item-add">Add</button></div>`;}).join("");
 }
-function addMealToDay(recipeId){
-  const recipe=state.recipes.find(r=>r.id===recipeId);
-  if(!recipe||state.pickDayIndex===null)return;
-  const meals=[...state.weekMeals];
-  if(meals.length>state.pickDayIndex){meals.splice(state.pickDayIndex,0,recipe);if(meals.length>6)meals.splice(6);}
-  else meals.push(recipe);
-  fbSet(REFS.weekMeals,meals);
-  fbSet(REFS.checked,{});
+function addMealToDay(id){
+  if(state.locked)return;
+  const recipe=state.recipes.find(r=>r.id===id);if(!recipe||state.pickDayIndex===null)return;
+  const m=[...state.weekMeals];
+  if(m.length>state.pickDayIndex){m.splice(state.pickDayIndex,0,recipe);if(m.length>6)m.splice(6);}
+  else m.push(recipe);
+  fbSet(REFS.weekMeals,m);fbSet(REFS.checked,{});
   closeModal("modal-pick");
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ADD RECIPE MODAL
-// ─────────────────────────────────────────────────────────────────────────────
+// ── ADD RECIPE MODAL ──────────────────────────────────────────────────────────
 function openAddModal(){
   document.getElementById("f-name").value="";
   document.getElementById("f-tag").value="";
   document.getElementById("f-url").value="";
+  showScrapeStatus("","");
   state.selectedSrc="own";renderSrcPicker();validateForm();
   document.getElementById("modal-add").style.display="flex";
-  setTimeout(()=>document.getElementById("f-name").focus(),350);
+  setTimeout(()=>document.getElementById("f-url").focus(),350);
 }
 function renderSrcPicker(){
   document.getElementById("src-picker").innerHTML=Object.entries(SOURCES).map(([k,v])=>
@@ -842,21 +802,15 @@ function submitRecipe(){
   const name=document.getElementById("f-name").value.trim();if(!name)return;
   const r={id:Date.now(),name,tag:document.getElementById("f-tag").value.trim()||"—",src:state.selectedSrc,url:document.getElementById("f-url").value.trim(),special:false,active:true,ingredients:{}};
   fbSet(REFS.recipes,[...state.recipes,r]);
-  closeModal("modal-add");state.tab="recipes";
+  closeModal("modal-add");state.tab="recipes";render();
 }
 function closeModal(id){document.getElementById(id).style.display="none";}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// UTILS
-// ─────────────────────────────────────────────────────────────────────────────
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 if("serviceWorker"in navigator){
-  const sw=`const C="pantry-v3";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.pathname]))));self.addEventListener("fetch",e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))))`;
+  const sw=`const C="pantry-v4";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.pathname]))));self.addEventListener("fetch",e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))))`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:"application/javascript"}))).catch(()=>{});
 }
 </script>
 </body>
 </html>
-HTMLEOF
-echo "Done — $(wc -c < /mnt/user-data/outputs/index.html) bytes"
