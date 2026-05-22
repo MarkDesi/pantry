@@ -281,7 +281,15 @@ function applyKey(key,value){
 }
 function save(key,value){applyKey(key,value);go(S.tab);syncUI("sync");dbSet(key,value);}
 function syncUI(s){const d=document.getElementById("sdot"),l=document.getElementById("slbl");if(!d)return;d.className="dot"+(s==="live"?" live":s==="sync"?" sync":"");if(l)l.textContent=s==="live"?"Live · Mark & Maddi":s==="sync"?"Saving…":"Reconnecting…";}
-async function initDB(){try{const r=await fetch(SB_URL+"/rest/v1/pantry?select=key,value",{headers:SBH});const rows=await r.json();if(Array.isArray(rows)){rows.forEach(row=>{pollV[row.key]=row.value;applyKey(row.key,row.value);});syncUI("live");}}}catch(e){syncUI("off");}go(S.tab);setInterval(poll,3000);}
+async function initDB(){
+  try{
+    const r=await fetch(SB_URL+"/rest/v1/pantry?select=key,value",{headers:SBH});
+    const rows=await r.json();
+    if(Array.isArray(rows)){rows.forEach(row=>{pollV[row.key]=row.value;applyKey(row.key,row.value);});syncUI("live");}
+  }catch(e){syncUI("off");}
+  go(S.tab);
+  setInterval(poll,3000);
+}
 
 // ── CONFIG ────────────────────────────────────────────────────────
 const SRC={own:{label:"My Recipe",color:"#A8896C"},kic:{label:"KIC",color:"#C97B84"},rte:{label:"RecipeTin",color:"#7B9E87"},ontrac:{label:"OnTrac5",color:"#7B8CBE"},other:{label:"Other",color:"#9B8BB0"}};
