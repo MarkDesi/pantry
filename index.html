@@ -386,15 +386,62 @@ var S = {
 // ─────────────────────────────────────────────────────────────────
 // SHOPPING LIST BUILDER
 // ─────────────────────────────────────────────────────────────────
-function mergeQty(a,b){
-  const g=q=>{const m=q.match(/(\d+\.?\d*)\s*(g|kg)/i);if(!m)return null;return m[2].toLowerCase()==="kg"?parseFloat(m[1])*1000:parseFloat(m[1]);};
-  const g1=g(a),g2=g(b);
-  if(g1&&g2){const t=g1+g2;return t>=1000?(t/1000).toFixed(1).replace(/\.0$/,"")+"kg":t+"g";}
-  const c=q=>{const m=q.match(/(\d+\.?\d*)\s*cup/i);return m?parseFloat(m[1]):null;};
-  const c1=c(a),c2=c(b);if(c1&&c2)return(c1+c2)+" cups";
-  const n=q=>{const m=q.match(/^(\d+)$/);return m?parseInt(m[1]):null;};
-  const n1=n(a),n2=n(b);if(n1&&n2)return""+(n1+n2);
-  return a+" + "+b;
+function mergeQty(a, b) {
+  if (!a) return b;
+  if (!b) return a;
+  a = a.trim(); b = b.trim();
+  if (a === b) return a; // identical — no need to double up
+
+  // Helper: parse a quantity string into {value, unit}
+  function parse(q) {
+    q = q.trim();
+    // Fraction support: "1/2", "2 1/4"
+    const frac = q.match(/^(\d+)\s+(\d+)\/(\d+)/);
+    if (frac) return { value: parseInt(frac[1]) + parseInt(frac[2])/parseInt(frac[3]), unit: q.replace(/^[\d\s\/]+/, '').trim().toLowerCase() };
+    const half = q.match(/^(\d+)\/(\d+)/);
+    if (half) return { value: parseInt(half[1])/parseInt(half[2]), unit: q.replace(/^[\d\/]+/, '').trim().toLowerCase() };
+    const plain = q.match(/^([\d\.]+)\s*(.*)/);
+    if (plain) return { value: parseFloat(plain[1]), unit: plain[2].trim().toLowerCase() };
+    return null;
+  }
+
+  // Normalise units to a base
+  function toBase(val, unit) {
+    if (/^kg/.test(unit)) return { value: val * 1000, base: 'g' };
+    if (/^g/.test(unit))  return { value: val, base: 'g' };
+    if (/^l$/.test(unit)) return { value: val * 1000, base: 'ml' };
+    if (/^ml/.test(unit)) return { value: val, base: 'ml' };
+    if (/^cup/.test(unit)) return { value: val, base: 'cup' };
+    if (/^tbsp|tablespoon/.test(unit)) return { value: val, base: 'tbsp' };
+    if (/^tsp|teaspoon/.test(unit))    return { value: val, base: 'tsp' };
+    if (unit === '') return { value: val, base: '' }; // plain count
+    return null;
+  }
+
+  // Format result back to a nice string
+  function fmt(val, base) {
+    if (base === 'g')   return val >= 1000 ? (val/1000).toFixed(1).replace(/\.0$/, '') + 'kg' : val + 'g';
+    if (base === 'ml')  return val >= 1000 ? (val/1000).toFixed(1).replace(/\.0$/, '') + 'L' : val + 'ml';
+    if (base === 'cup') return val + (val === 1 ? ' cup' : ' cups');
+    if (base === 'tbsp') return val + ' tbsp';
+    if (base === 'tsp')  return val + ' tsp';
+    if (base === '')    return String(val); // plain count
+    return String(val) + ' ' + base;
+  }
+
+  const pa = parse(a), pb = parse(b);
+  if (!pa || !pb) return a + ' + ' + b;
+
+  const ba = toBase(pa.value, pa.unit);
+  const bb = toBase(pb.value, pb.unit);
+
+  if (ba && bb && ba.base === bb.base) {
+    const total = Math.round((ba.value + bb.value) * 100) / 100;
+    return fmt(total, ba.base);
+  }
+
+  // Units don't match — show both
+  return a + ' + ' + b;
 }
 function guessAisle(n){
   const l=n.toLowerCase();
