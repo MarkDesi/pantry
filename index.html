@@ -1,3 +1,4 @@
+cat > /mnt/user-data/outputs/index.html << 'HTMLEOF'
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -27,7 +28,11 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 }
 #app{max-width:430px;margin:0 auto;height:100vh;display:flex;flex-direction:column;overflow:hidden;background:var(--cream)}
 .app-header{padding:calc(var(--safe-top) + 48px) 24px 0;flex-shrink:0}
-.eyebrow{font-size:11px;font-weight:500;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.eyebrow{font-size:11px;font-weight:500;letter-spacing:1.8px;text-transform:uppercase;color:var(--text3);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--warm3);flex-shrink:0;transition:background .3s}
+.sync-dot.live{background:var(--green)}
+.sync-dot.syncing{background:#BA7517;animation:pulse .8s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .page-title{font-family:'Fraunces',serif;font-size:34px;font-weight:400;color:var(--dark);line-height:1.05;letter-spacing:-0.5px;min-height:72px;display:flex;align-items:flex-end;padding-bottom:16px}
 .page-title em{font-style:italic;color:var(--brown)}
 .tab-bar{display:flex;background:var(--warm1);margin:0 20px;border-radius:14px;padding:4px;gap:2px;flex-shrink:0}
@@ -38,14 +43,10 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .scroll-area::-webkit-scrollbar{display:none}
 .card{background:#fff;border-radius:18px;padding:4px 16px;margin-bottom:12px;box-shadow:0 1px 10px rgba(44,32,22,.07)}
 .section-label{font-size:10.5px;font-weight:500;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin:22px 0 9px 2px}
-
-/* STATS */
 .week-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
 .stat-pill{background:#fff;border-radius:14px;padding:13px 8px 11px;text-align:center;box-shadow:0 1px 8px rgba(44,32,22,.06)}
 .stat-num{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--dark);line-height:1}
 .stat-lbl{font-size:10px;color:var(--text3);margin-top:3px}
-
-/* MEAL ROWS */
 .meals-container{background:#fff;border-radius:18px;box-shadow:0 1px 10px rgba(44,32,22,.07);overflow:hidden;margin-bottom:12px}
 .meal-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--warm1);position:relative;user-select:none;-webkit-user-select:none}
 .meal-row:last-child{border-bottom:none}
@@ -70,11 +71,6 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .shuffle-btn:active{opacity:.85;transform:scale(.98)}
 .shuffle-icon{display:inline-block;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
 .shuffle-icon.spin{transform:rotate(360deg)}
-
-/* SHOPPING LIST */
-.list-legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)}
-.legend-dot{width:8px;height:8px;border-radius:50%}
 .progress-wrap{margin-bottom:14px}
 .progress-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .progress-text{font-size:12px;color:var(--text3)}
@@ -99,8 +95,6 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .fm-tag{font-size:10px;font-weight:500;background:#E3EDE3;color:var(--green);padding:2px 7px;border-radius:10px;margin-left:5px;white-space:nowrap}
 .recipe-tag-badge{font-size:10px;padding:2px 6px;border-radius:8px;margin-left:4px;white-space:nowrap;display:inline-block}
 .stock-note{font-size:10px;color:var(--text3);background:var(--warm1);padding:3px 8px;border-radius:10px;text-align:right;line-height:1.35;max-width:90px;flex-shrink:0}
-
-/* RECIPES TAB */
 .search-wrap{position:relative;margin-bottom:14px}
 .search-input{width:100%;padding:12px 14px 12px 38px;background:#fff;border:1.5px solid var(--warm2);border-radius:13px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text1);outline:none;transition:border-color .15s;-webkit-appearance:none}
 .search-input:focus{border-color:var(--brown)}
@@ -121,9 +115,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .toggle-btn.special{background:#F0E8DC;color:var(--brown);cursor:default;font-size:12px}
 .del-btn{width:26px;height:26px;border-radius:50%;border:none;background:var(--warm1);color:var(--text3);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s}
 .del-btn:active{background:#f5dada;color:var(--red)}
-
-/* SUGGESTIONS */
-.suggestion-card{display:flex;flex-direction:column;padding:14px 16px;background:#fff;border-radius:16px;margin-bottom:10px;box-shadow:0 1px 8px rgba(44,32,22,.06);position:relative}
+.suggestion-card{display:flex;flex-direction:column;padding:14px 16px;background:#fff;border-radius:16px;margin-bottom:10px;box-shadow:0 1px 8px rgba(44,32,22,.06)}
 .suggestion-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
 .suggestion-info{flex:1;min-width:0}
 .suggestion-nm{font-size:14px;font-weight:500;color:var(--text1);line-height:1.35;margin-bottom:3px}
@@ -133,13 +125,9 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .sug-btn.add{background:var(--dark);color:var(--cream)}
 .sug-btn.link{background:var(--warm1);color:var(--text2)}
 .sug-btn.dismiss{background:transparent;color:var(--text3);padding:7px 8px}
-
-/* FAB */
 .fab{position:fixed;bottom:calc(var(--safe-bottom) + 24px);right:calc(50% - 195px);width:54px;height:54px;background:var(--dark);color:var(--cream);border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 20px rgba(44,32,22,.25);display:flex;align-items:center;justify-content:center;transition:transform .15s;z-index:40;line-height:1}
 .fab:active{transform:scale(.9)}
 @media(max-width:430px){.fab{right:20px}}
-
-/* MODALS */
 .backdrop{position:fixed;inset:0;background:rgba(44,32,22,.45);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:90;display:flex;align-items:flex-end;justify-content:center;animation:bdIn .2s ease}
 @keyframes bdIn{from{opacity:0}to{opacity:1}}
 .sheet{width:100%;max-width:430px;background:var(--cream);border-radius:26px 26px 0 0;padding:0 20px calc(var(--safe-bottom) + 28px);animation:sheetUp .32s cubic-bezier(.32,.72,0,1);max-height:92vh;overflow-y:auto}
@@ -175,12 +163,38 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .hint{font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.5;padding:0 2px}
 .empty{text-align:center;padding:40px 20px;color:var(--text3)}
 .empty-icon{font-size:40px;margin-bottom:12px}
+/* loading screen */
+#loading{position:fixed;inset:0;background:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
+#loading.hidden{opacity:0;pointer-events:none}
+.loading-title{font-family:'Fraunces',serif;font-size:32px;color:var(--dark);margin-bottom:8px}
+.loading-title em{font-style:italic;color:var(--brown)}
+.loading-sub{font-size:13px;color:var(--text3)}
+.loading-dots{display:flex;gap:6px;margin-top:20px}
+.loading-dot{width:6px;height:6px;border-radius:50%;background:var(--warm3);animation:dotPulse 1.2s infinite}
+.loading-dot:nth-child(2){animation-delay:.2s}
+.loading-dot:nth-child(3){animation-delay:.4s}
+@keyframes dotPulse{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
 </style>
 </head>
 <body>
+
+<!-- Loading screen shown while Firebase connects -->
+<div id="loading">
+  <div class="loading-title"><em>Pantry</em></div>
+  <div class="loading-sub">Syncing with Mark &amp; Maddi…</div>
+  <div class="loading-dots">
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+    <div class="loading-dot"></div>
+  </div>
+</div>
+
 <div id="app">
   <div class="app-header">
-    <div class="eyebrow">Mark &amp; Maddi</div>
+    <div class="eyebrow">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-label">Connecting…</span>
+    </div>
     <div class="page-title" id="page-title"><em>This</em>&nbsp;week</div>
   </div>
   <div class="tab-bar">
@@ -221,9 +235,32 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
   </div>
 </div>
 
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
 <script>
 // ─────────────────────────────────────────────────────────────────────────────
-// SOURCES
+// FIREBASE CONFIG
+// ─────────────────────────────────────────────────────────────────────────────
+const firebaseConfig={
+  databaseURL:"https://pantry-61be7-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId:"pantry-61be7",
+  appId:"pantry-app"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.database();
+
+// Firebase refs
+const REFS={
+  weekMeals: db.ref("shared/weekMeals"),
+  checked:   db.ref("shared/checked"),
+  recipes:   db.ref("shared/recipes"),
+  dismissedSuggestions: db.ref("shared/dismissedSuggestions"),
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SOURCES & STATIC DATA
 // ─────────────────────────────────────────────────────────────────────────────
 const SOURCES={
   own:   {label:"My Recipe", color:"#A8896C"},
@@ -234,296 +271,190 @@ const SOURCES={
 };
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// RECIPE BANK — each recipe now carries its ingredients keyed by aisle
-// aisle keys: fm, produce, deli, seafood, meat, bakery, dairy, pasta, pantry, frozen, breakfast
-// ─────────────────────────────────────────────────────────────────────────────
 const DEFAULT_RECIPES=[
-  {id:1,name:"Marry Me Chicken Risoni",tag:"Chicken · Pasta",src:"kic",url:"",special:false,active:true,ingredients:{
-    produce:["Garlic (3 cloves)","Cherry tomatoes (1 punnet)","Baby spinach (handful)"],
-    meat:["Chicken thighs (600g)"],
-    dairy:["Parmesan (50g, grated)","Butter (1 tbsp)"],
-    pasta:["Risoni / orzo (300g)"],
-    pantry:["Chicken stock (500ml)","Olive oil","Dried oregano","Smoked paprika","Salt & pepper"],
-  }},
-  {id:2,name:"One Pot Beef Lasagne",tag:"Beef · Pasta",src:"rte",url:"https://www.recipetineats.com/one-pot-beef-lasagna-with-layers/",special:false,active:true,ingredients:{
-    produce:["Brown onion (1)","Garlic (3 cloves)"],
-    meat:["Beef mince (500g)"],
-    dairy:["Shredded mozzarella (1 cup)","Parmesan (grated)","Butter (1 tbsp)"],
-    pasta:["Lasagne sheets (250g)"],
-    pantry:["Mutti Passata (700g bottle)","Beef stock (250ml)","Dried oregano","Salt & pepper","Olive oil"],
-  }},
-  {id:3,name:"Greek Chicken Kebab Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-greek-chicken-kebab-bowl",special:false,active:true,ingredients:{
-    fm:["Lebanese cucumbers (2)"],
-    produce:["Garlic (2 cloves)","Lemons (1)","Cherry tomatoes (handful)","Potatoes (500g)"],
-    meat:["Chicken breast (500g)"],
-    dairy:["Chobani Greek yoghurt (200g)"],
-    pasta:["Basmati rice (1 cup)"],
-    pantry:["Olive oil","Dried oregano","Cumin","Smoked paprika","Salt & pepper"],
-  }},
-  {id:4,name:"Sausages & Mash",tag:"Pork · Comfort",src:"own",url:"",special:false,active:true,ingredients:{
-    produce:["Garlic (2 cloves)","Broccolini (1 bunch)","Lemons (1)","Potatoes (800g)"],
-    meat:["Herb & Garlic sausages (1 pack)"],
-    dairy:["Butter (2 tbsp)","Milk (splash)"],
-    pantry:["Olive oil","Salt & pepper"],
-  }},
-  {id:5,name:"Steak w/ Chimichurri & Chips",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Flat-leaf parsley (1 bunch)"],
-    produce:["Garlic (4 cloves)","Lemons (1)","Broccolini (1 bunch)","Potatoes (600g)"],
-    meat:["Eye fillet / rump steak (2 steaks)"],
-    pantry:["Olive oil","Smoked paprika","Cumin","Salt & pepper","Red wine vinegar"],
-  }},
-  {id:6,name:"Crispy Rice Chicken Salad",tag:"Chicken · Salad",src:"ontrac",url:"https://ontrac5.com/recipes/bang-bang-chicken-crispy-rice-salad",special:false,active:true,ingredients:{
-    fm:["Lebanese cucumbers (2)","Seasonal salad greens (bag)","Carrots (1)"],
-    produce:["Lemons (1)","Garlic (2 cloves)"],
-    meat:["Chicken breast (500g)"],
-    pasta:["Jasmine rice (1.5 cups)"],
-    pantry:["Soy sauce","Olive oil","Sweet chilli sauce","Mayo (Kewpie)","Salt & pepper"],
-  }},
-  {id:7,name:"Tuna Bake",tag:"Fish · Bake",src:"own",url:"",special:false,active:true,ingredients:{
-    produce:["Brown onion (1)","Garlic (2 cloves)"],
-    seafood:["Canned tuna in oil (3 cans)"],
-    dairy:["Shredded mozzarella (1 cup)","Butter (1 tbsp)","Sour cream (100g)"],
-    pasta:["Risoni / orzo (250g)"],
-    pantry:["Chicken stock (400ml)","Olive oil","Salt & pepper"],
-  }},
-  {id:8,name:"Chicken Caesar Salad",tag:"Chicken · Salad",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Seasonal salad greens (bag)"],
-    produce:["Lemons (1)","Garlic (1 clove)"],
-    meat:["Chicken breast (400g)"],
-    dairy:["Parmesan (50g, shaved)"],
-    pantry:["Olive oil","Mayo (Kewpie)","Olive oil","Salt & pepper"],
-  }},
-  {id:9,name:"Homemade Pizza",tag:"Chicken · Veg",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Seasonal salad greens (for side)"],
-    produce:["Garlic (2 cloves)","Cherry tomatoes (handful)"],
-    deli:["Shaved ham / salami (100g)"],
-    meat:["Chicken breast (200g, cooked)"],
-    dairy:["Shredded mozzarella (1.5 cups)"],
-    bakery:["Pizza bases (2)"],
-    pantry:["Mutti Passata (½ bottle)","Dried oregano","Olive oil","Salt & pepper"],
-  }},
-  {id:10,name:"Homemade Burgers",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Seasonal salad greens (for burger)","Lebanese cucumbers (1)"],
-    produce:["Lemons (1)"],
-    meat:["Beef mince (500g)"],
-    dairy:["Shredded mozzarella (½ cup)","Sour cream (for sauce)"],
-    bakery:["Burger buns (4)"],
-    pantry:["Olive oil","Salt & pepper","Smoked paprika","Mayo (Kewpie)","Sweet chilli sauce"],
-  }},
-  {id:11,name:"Beef Mince Taco Bowl",tag:"Beef · Mexican",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Lebanese cucumbers (2)","Seasonal salad greens (bag)"],
-    produce:["Brown onion (1)","Garlic (2 cloves)","Lemons (1)","Cherry tomatoes (handful)"],
-    meat:["Beef mince (500g)"],
-    dairy:["Sour cream (100g)","Shredded mozzarella (½ cup)"],
-    pasta:["Basmati rice (1.5 cups)"],
-    pantry:["Mingle taco seasoning (1 pack)","Taco shells & wraps","Olive oil","Salt & pepper"],
-  }},
-  {id:12,name:"Fried Rice & Gyoza",tag:"Chicken · Asian",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Carrots (2)","Capsicum (1)"],
-    produce:["Garlic (3 cloves)","Brown onion (1)"],
-    meat:["Chicken thighs (400g)"],
-    dairy:["Free range eggs (3)"],
-    pasta:["Jasmine rice (2 cups, day-old)"],
-    frozen:["Gyoza (1 pack)","Frozen corn (½ cup)"],
-    pantry:["Soy sauce","Oyster sauce","Olive oil","Salt & pepper"],
-  }},
-  {id:13,name:"Prawn Pasta",tag:"Seafood · Pasta",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Flat-leaf parsley (½ bunch)"],
-    produce:["Garlic (4 cloves)","Lemons (2)","Cherry tomatoes (1 punnet)"],
-    seafood:["Frozen prawns (500g)"],
-    pasta:["Spaghetti (400g)"],
-    pantry:["Olive oil","Chilli flakes","Salt & pepper"],
-  }},
-  {id:14,name:"Gyoza Stir Fry",tag:"Pork · Asian",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Capsicum (1)","Carrots (2)"],
-    produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],
-    frozen:["Gyoza (1 pack)"],
-    pasta:["Jasmine rice (1.5 cups)"],
-    pantry:["Soy sauce","Oyster sauce","Olive oil","Sweet chilli sauce","Salt & pepper"],
-  }},
-  {id:15,name:"Spaghetti Bolognese",tag:"Beef · Pasta",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Flat-leaf parsley (½ bunch)"],
-    produce:["Brown onion (1)","Garlic (4 cloves)","Lemons (½)"],
-    meat:["Beef mince (1kg)"],
-    dairy:["Parmesan (grated, to serve)","Butter (1 tbsp)"],
-    pasta:["Spaghetti (500g)"],
-    pantry:["Mutti Passata (2 × 700g bottles)","Beef stock (250ml)","Dried oregano","Olive oil","Salt & pepper"],
-  }},
-  {id:16,name:"Greek Pasta Salad",tag:"Veg · Salad",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Lebanese cucumbers (2)","Brown onions (½)","Feta cheese (200g)"],
-    produce:["Cherry tomatoes (1 punnet)","Lemons (1)"],
-    pasta:["Risoni / orzo (250g)"],
-    pantry:["Olive oil","Dried oregano","Salt & pepper"],
-  }},
-  {id:17,name:"Burger Salad",tag:"Beef · Salad",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Seasonal salad greens (bag)","Lebanese cucumbers (1)","Feta cheese (100g)"],
-    produce:["Cherry tomatoes (handful)","Brown onion (½)"],
-    meat:["Beef mince (400g)"],
-    pantry:["Olive oil","Salt & pepper","Smoked paprika","Mayo (Kewpie)","Sweet chilli sauce"],
-  }},
-  {id:18,name:"Pork Ramen Noodles",tag:"Pork · Asian",src:"ontrac",url:"",special:false,active:true,ingredients:{
-    produce:["Garlic (3 cloves)","Brown onion (1)","Broccolini (1 bunch)"],
-    meat:["Herb & Garlic sausages (1 pack, sliced)"],
-    dairy:["Free range eggs (2, soft boiled)"],
-    pasta:["Ramen noodles (2 packs)"],
-    pantry:["Soy sauce","Oyster sauce","Chicken stock (500ml)","Olive oil","Salt & pepper"],
-  }},
-  {id:19,name:"Salmon Pesto Pasta",tag:"Salmon · Pasta",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Salmon fillets (2)"],
-    produce:["Lemons (1)","Garlic (1 clove)","Cherry tomatoes (handful)"],
-    dairy:["Parmesan (30g, grated)"],
-    pasta:["Spaghetti (300g)"],
-    pantry:["Pesto (jar, 4 tbsp)","Olive oil","Salt & pepper"],
-  }},
-  {id:20,name:"Rice Paper Noodle Bowl",tag:"Chicken · Fresh",src:"own",url:"",special:false,active:true,ingredients:{
-    fm:["Carrots (2, julienned)","Capsicum (1, sliced)","Lebanese cucumbers (2)"],
-    produce:["Garlic (2 cloves)","Lemons (1)"],
-    meat:["Chicken breast (400g)"],
-    pasta:["Rice paper rolls (1 pack)","Rice noodles (200g)"],
-    pantry:["Soy sauce","Sweet chilli sauce","Olive oil","Salt & pepper"],
-  }},
-  {id:21,name:"Lamb Shoulder Gyros",tag:"Lamb · Special",src:"own",url:"",special:true,active:true,ingredients:{
-    fm:["Flat-leaf parsley (1 bunch)","Lebanese cucumbers (2)"],
-    produce:["Garlic (6 cloves)","Lemons (2)","Brown onion (1)"],
-    dairy:["Chobani Greek yoghurt (200g for tzatziki)"],
-    pantry:["Olive oil","Dried oregano","Cumin","Smoked paprika","Salt & pepper"],
-  }},
+  {id:1,name:"Marry Me Chicken Risoni",tag:"Chicken · Pasta",src:"kic",url:"",special:false,active:true,ingredients:{produce:["Garlic (3 cloves)","Cherry tomatoes (1 punnet)","Baby spinach (handful)"],meat:["Chicken thighs (600g)"],dairy:["Parmesan (50g, grated)","Butter (1 tbsp)"],pasta:["Risoni / orzo (300g)"],pantry:["Chicken stock (500ml)","Olive oil","Dried oregano","Smoked paprika","Salt & pepper"]}},
+  {id:2,name:"One Pot Beef Lasagne",tag:"Beef · Pasta",src:"rte",url:"https://www.recipetineats.com/one-pot-beef-lasagna-with-layers/",special:false,active:true,ingredients:{produce:["Brown onion (1)","Garlic (3 cloves)"],meat:["Beef mince (500g)"],dairy:["Shredded mozzarella (1 cup)","Parmesan (grated)","Butter (1 tbsp)"],pasta:["Lasagne sheets (250g)"],pantry:["Mutti Passata (700g bottle)","Beef stock (250ml)","Dried oregano","Salt & pepper","Olive oil"]}},
+  {id:3,name:"Greek Chicken Kebab Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-greek-chicken-kebab-bowl",special:false,active:true,ingredients:{fm:["Lebanese cucumbers (2)"],produce:["Garlic (2 cloves)","Lemons (1)","Cherry tomatoes (handful)","Potatoes (500g)"],meat:["Chicken breast (500g)"],dairy:["Chobani Greek yoghurt (200g)"],pasta:["Basmati rice (1 cup)"],pantry:["Olive oil","Dried oregano","Cumin","Smoked paprika","Salt & pepper"]}},
+  {id:4,name:"Sausages & Mash",tag:"Pork · Comfort",src:"own",url:"",special:false,active:true,ingredients:{produce:["Garlic (2 cloves)","Broccolini (1 bunch)","Lemons (1)","Potatoes (800g)"],meat:["Herb & Garlic sausages (1 pack)"],dairy:["Butter (2 tbsp)","Milk (splash)"],pantry:["Olive oil","Salt & pepper"]}},
+  {id:5,name:"Steak w/ Chimichurri & Chips",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,ingredients:{fm:["Flat-leaf parsley (1 bunch)"],produce:["Garlic (4 cloves)","Lemons (1)","Broccolini (1 bunch)","Potatoes (600g)"],meat:["Eye fillet / rump steak (2 steaks)"],pantry:["Olive oil","Smoked paprika","Cumin","Salt & pepper","Red wine vinegar"]}},
+  {id:6,name:"Crispy Rice Chicken Salad",tag:"Chicken · Salad",src:"ontrac",url:"https://ontrac5.com/recipes/bang-bang-chicken-crispy-rice-salad",special:false,active:true,ingredients:{fm:["Lebanese cucumbers (2)","Seasonal salad greens (bag)","Carrots (1)"],produce:["Lemons (1)","Garlic (2 cloves)"],meat:["Chicken breast (500g)"],pasta:["Jasmine rice (1.5 cups)"],pantry:["Soy sauce","Olive oil","Sweet chilli sauce","Mayo (Kewpie)","Salt & pepper"]}},
+  {id:7,name:"Tuna Bake",tag:"Fish · Bake",src:"own",url:"",special:false,active:true,ingredients:{produce:["Brown onion (1)","Garlic (2 cloves)"],seafood:["Canned tuna in oil (3 cans)"],dairy:["Shredded mozzarella (1 cup)","Butter (1 tbsp)","Sour cream (100g)"],pasta:["Risoni / orzo (250g)"],pantry:["Chicken stock (400ml)","Olive oil","Salt & pepper"]}},
+  {id:8,name:"Chicken Caesar Salad",tag:"Chicken · Salad",src:"own",url:"",special:false,active:true,ingredients:{fm:["Seasonal salad greens (bag)"],produce:["Lemons (1)","Garlic (1 clove)"],meat:["Chicken breast (400g)"],dairy:["Parmesan (50g, shaved)"],pantry:["Olive oil","Mayo (Kewpie)","Salt & pepper"]}},
+  {id:9,name:"Homemade Pizza",tag:"Chicken · Veg",src:"own",url:"",special:false,active:true,ingredients:{produce:["Garlic (2 cloves)","Cherry tomatoes (handful)"],deli:["Shaved ham / salami (100g)"],meat:["Chicken breast (200g, cooked)"],dairy:["Shredded mozzarella (1.5 cups)"],bakery:["Pizza bases (2)"],pantry:["Mutti Passata (½ bottle)","Dried oregano","Olive oil","Salt & pepper"]}},
+  {id:10,name:"Homemade Burgers",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,ingredients:{fm:["Seasonal salad greens (for burger)","Lebanese cucumbers (1)"],meat:["Beef mince (500g)"],dairy:["Shredded mozzarella (½ cup)","Sour cream (for sauce)"],bakery:["Burger buns (4)"],pantry:["Olive oil","Salt & pepper","Smoked paprika","Mayo (Kewpie)","Sweet chilli sauce"]}},
+  {id:11,name:"Beef Mince Taco Bowl",tag:"Beef · Mexican",src:"own",url:"",special:false,active:true,ingredients:{fm:["Lebanese cucumbers (2)","Seasonal salad greens (bag)"],produce:["Brown onion (1)","Garlic (2 cloves)","Lemons (1)","Cherry tomatoes (handful)"],meat:["Beef mince (500g)"],dairy:["Sour cream (100g)","Shredded mozzarella (½ cup)"],pasta:["Basmati rice (1.5 cups)"],pantry:["Mingle taco seasoning (1 pack)","Taco shells & wraps","Olive oil","Salt & pepper"]}},
+  {id:12,name:"Fried Rice & Gyoza",tag:"Chicken · Asian",src:"own",url:"",special:false,active:true,ingredients:{fm:["Carrots (2)","Capsicum (1)"],produce:["Garlic (3 cloves)","Brown onion (1)"],meat:["Chicken thighs (400g)"],dairy:["Free range eggs (3)"],pasta:["Jasmine rice (2 cups, day-old)"],frozen:["Gyoza (1 pack)","Frozen corn (½ cup)"],pantry:["Soy sauce","Oyster sauce","Olive oil","Salt & pepper"]}},
+  {id:13,name:"Prawn Pasta",tag:"Seafood · Pasta",src:"own",url:"",special:false,active:true,ingredients:{fm:["Flat-leaf parsley (½ bunch)"],produce:["Garlic (4 cloves)","Lemons (2)","Cherry tomatoes (1 punnet)"],seafood:["Frozen prawns (500g)"],pasta:["Spaghetti (400g)"],pantry:["Olive oil","Chilli flakes","Salt & pepper"]}},
+  {id:14,name:"Gyoza Stir Fry",tag:"Pork · Asian",src:"own",url:"",special:false,active:true,ingredients:{fm:["Capsicum (1)","Carrots (2)"],produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],frozen:["Gyoza (1 pack)"],pasta:["Jasmine rice (1.5 cups)"],pantry:["Soy sauce","Oyster sauce","Olive oil","Sweet chilli sauce","Salt & pepper"]}},
+  {id:15,name:"Spaghetti Bolognese",tag:"Beef · Pasta",src:"own",url:"",special:false,active:true,ingredients:{fm:["Flat-leaf parsley (½ bunch)"],produce:["Brown onion (1)","Garlic (4 cloves)"],meat:["Beef mince (1kg)"],dairy:["Parmesan (grated, to serve)","Butter (1 tbsp)"],pasta:["Spaghetti (500g)"],pantry:["Mutti Passata (2 × 700g bottles)","Beef stock (250ml)","Dried oregano","Olive oil","Salt & pepper"]}},
+  {id:16,name:"Greek Pasta Salad",tag:"Veg · Salad",src:"own",url:"",special:false,active:true,ingredients:{fm:["Lebanese cucumbers (2)","Feta cheese (200g)"],produce:["Cherry tomatoes (1 punnet)","Lemons (1)"],pasta:["Risoni / orzo (250g)"],pantry:["Olive oil","Dried oregano","Salt & pepper"]}},
+  {id:17,name:"Burger Salad",tag:"Beef · Salad",src:"own",url:"",special:false,active:true,ingredients:{fm:["Seasonal salad greens (bag)","Lebanese cucumbers (1)","Feta cheese (100g)"],produce:["Cherry tomatoes (handful)","Brown onion (½)"],meat:["Beef mince (400g)"],pantry:["Olive oil","Salt & pepper","Smoked paprika","Mayo (Kewpie)","Sweet chilli sauce"]}},
+  {id:18,name:"Pork Ramen Noodles",tag:"Pork · Asian",src:"ontrac",url:"",special:false,active:true,ingredients:{produce:["Garlic (3 cloves)","Brown onion (1)","Broccolini (1 bunch)"],meat:["Herb & Garlic sausages (1 pack, sliced)"],dairy:["Free range eggs (2, soft boiled)"],pasta:["Ramen noodles (2 packs)"],pantry:["Soy sauce","Oyster sauce","Chicken stock (500ml)","Olive oil","Salt & pepper"]}},
+  {id:19,name:"Salmon Pesto Pasta",tag:"Salmon · Pasta",src:"own",url:"",special:false,active:true,ingredients:{fm:["Salmon fillets (2)"],produce:["Lemons (1)","Garlic (1 clove)","Cherry tomatoes (handful)"],dairy:["Parmesan (30g, grated)"],pasta:["Spaghetti (300g)"],pantry:["Pesto (jar, 4 tbsp)","Olive oil","Salt & pepper"]}},
+  {id:20,name:"Rice Paper Noodle Bowl",tag:"Chicken · Fresh",src:"own",url:"",special:false,active:true,ingredients:{fm:["Carrots (2, julienned)","Capsicum (1, sliced)","Lebanese cucumbers (2)"],produce:["Garlic (2 cloves)","Lemons (1)"],meat:["Chicken breast (400g)"],pasta:["Rice paper rolls (1 pack)","Rice noodles (200g)"],pantry:["Soy sauce","Sweet chilli sauce","Olive oil","Salt & pepper"]}},
+  {id:21,name:"Lamb Shoulder Gyros",tag:"Lamb · Special",src:"own",url:"",special:true,active:true,ingredients:{fm:["Flat-leaf parsley (1 bunch)","Lebanese cucumbers (2)"],produce:["Garlic (6 cloves)","Lemons (2)","Brown onion (1)"],dairy:["Chobani Greek yoghurt (200g)"],pantry:["Olive oil","Dried oregano","Cumin","Smoked paprika","Salt & pepper"]}},
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATIC WEEKLY STAPLES — always on the list regardless of recipe selection
-// ─────────────────────────────────────────────────────────────────────────────
 const STAPLES={
-  fm:[
-    {n:"Bananas",qty:"6–8"},
-    {n:"Avocados",qty:"3"},
-    {n:"Seasonal salad greens",qty:"1 bag"},
-    {n:"Sourdough loaf",qty:"1 loaf"},
-  ],
-  produce:[
-    {n:"Garlic bulbs",qty:"1–2 bulbs",stock:"Check level"},
-    {n:"Lemons",qty:"4"},
-  ],
-  deli:[
-    {n:"Chobani Greek yoghurt",qty:"2 × 700g"},
-    {n:"Meredith goat cheese",qty:"1 jar",stock:"~40% left"},
-  ],
-  seafood:[],
-  meat:[],
-  bakery:[
-    {n:"Crumpets",qty:"1 pack"},
-    {n:"Burger buns",qty:"6 pack"},
-  ],
-  dairy:[
-    {n:"Milk (full cream)",qty:"3L"},
-    {n:"Free range eggs",qty:"~9 (18/fortnight)"},
-    {n:"Butter",qty:"250g",stock:"~60% left"},
-  ],
+  fm:[{n:"Bananas",qty:"6–8"},{n:"Avocados",qty:"3"},{n:"Seasonal salad greens",qty:"1 bag"},{n:"Sourdough loaf",qty:"1 loaf"}],
+  produce:[{n:"Garlic bulbs",qty:"1–2 bulbs",stock:"Check level"},{n:"Lemons",qty:"4"}],
+  deli:[{n:"Chobani Greek yoghurt",qty:"2 × 700g"},{n:"Meredith goat cheese",qty:"1 jar",stock:"~40% left"}],
+  seafood:[],meat:[],
+  bakery:[{n:"Crumpets",qty:"1 pack"},{n:"Burger buns",qty:"6 pack"}],
+  dairy:[{n:"Milk (full cream)",qty:"3L"},{n:"Free range eggs",qty:"~9 (18/fortnight)"},{n:"Butter",qty:"250g",stock:"~60% left"}],
   pasta:[],
-  pantry:[
-    {n:"Mutti Passata",qty:"2 bottles",stock:"Buy this week"},
-    {n:"Chicken stock (1L)",qty:"1 carton",stock:"~45% left"},
-    {n:"Beef stock (1L)",qty:"1 carton",stock:"~45% left"},
-    {n:"Mingle taco seasoning",qty:"1–2 packs",stock:"1 left — buy"},
-    {n:"Taco shells & wraps",qty:"1 pack ea."},
-    {n:"Soy sauce",qty:"Top up if needed",stock:"~70% left"},
-    {n:"Oyster sauce",qty:"Top up if needed",stock:"~60% left"},
-    {n:"Olive oil",qty:"Top up if needed",stock:"~65% left"},
-    {n:"Kewpie mayo",qty:"Top up if needed",stock:"~40% left"},
-    {n:"Sweet chilli sauce",qty:"Top up if needed",stock:"~50% left"},
-  ],
-  frozen:[
-    {n:"Frozen raspberries",qty:"1kg bag",stock:"~35% left"},
-    {n:"Gyoza (Woolworths)",qty:"2 packs",stock:"OUT — buy"},
-    {n:"Your Spud Co hashbrowns",qty:"1 box"},
-    {n:"Frozen corn",qty:"500g",stock:"~50% left"},
-  ],
-  breakfast:[
-    {n:"Weet-Bix",qty:"750g",stock:"~40% left"},
-    {n:"Just Right (or similar)",qty:"500g",stock:"~30% left"},
-    {n:"Honey",qty:"500g",stock:"~55% left"},
-    {n:"Bega Smooth PB",qty:"375g",stock:"~45% left"},
-  ],
+  pantry:[{n:"Mutti Passata",qty:"2 bottles",stock:"Buy this week"},{n:"Chicken stock (1L)",qty:"1 carton",stock:"~45% left"},{n:"Beef stock (1L)",qty:"1 carton",stock:"~45% left"},{n:"Mingle taco seasoning",qty:"1–2 packs",stock:"1 left — buy"},{n:"Taco shells & wraps",qty:"1 pack ea."},{n:"Soy sauce",qty:"Top up if needed",stock:"~70% left"},{n:"Oyster sauce",qty:"Top up if needed",stock:"~60% left"},{n:"Olive oil",qty:"Top up if needed",stock:"~65% left"},{n:"Kewpie mayo",qty:"Top up if needed",stock:"~40% left"},{n:"Sweet chilli sauce",qty:"Top up if needed",stock:"~50% left"}],
+  frozen:[{n:"Frozen raspberries",qty:"1kg bag",stock:"~35% left"},{n:"Gyoza (Woolworths)",qty:"2 packs",stock:"OUT — buy"},{n:"Your Spud Co hashbrowns",qty:"1 box"},{n:"Frozen corn",qty:"500g",stock:"~50% left"}],
+  breakfast:[{n:"Weet-Bix",qty:"750g",stock:"~40% left"},{n:"Just Right (or similar)",qty:"500g",stock:"~30% left"},{n:"Honey",qty:"500g",stock:"~55% left"},{n:"Bega Smooth PB",qty:"375g",stock:"~45% left"}],
 };
 
-// Aisle display config
 const AISLES=[
-  {key:"fm",       name:"Farmers Market",      color:"#5C7A5E", icon:"🌿"},
-  {key:"produce",  name:"Fresh Produce",        color:"#7B9E87", icon:"🥦"},
-  {key:"deli",     name:"Deli",                 color:"#9B8BB0", icon:"🧀"},
-  {key:"seafood",  name:"Seafood",              color:"#4A6B8A", icon:"🐟"},
-  {key:"meat",     name:"Meat",                 color:"#B85A5A", icon:"🥩"},
-  {key:"bakery",   name:"Bakery",               color:"#A8896C", icon:"🍞"},
-  {key:"dairy",    name:"Dairy & Eggs",         color:"#7B9E87", icon:"🥛"},
-  {key:"pasta",    name:"Pasta, Rice & Grains", color:"#7B8CBE", icon:"🍝"},
-  {key:"pantry",   name:"Sauces & Pantry",      color:"#9B8070", icon:"🥫"},
-  {key:"frozen",   name:"Frozen",               color:"#4A6B8A", icon:"🧊"},
-  {key:"breakfast",name:"Breakfast & Cereal",   color:"#C97B84", icon:"🥣"},
+  {key:"fm",       name:"Farmers Market",      color:"#5C7A5E"},
+  {key:"produce",  name:"Fresh Produce",        color:"#7B9E87"},
+  {key:"deli",     name:"Deli",                 color:"#9B8BB0"},
+  {key:"seafood",  name:"Seafood",              color:"#4A6B8A"},
+  {key:"meat",     name:"Meat",                 color:"#B85A5A"},
+  {key:"bakery",   name:"Bakery",               color:"#A8896C"},
+  {key:"dairy",    name:"Dairy & Eggs",         color:"#7B9E87"},
+  {key:"pasta",    name:"Pasta, Rice & Grains", color:"#7B8CBE"},
+  {key:"pantry",   name:"Sauces & Pantry",      color:"#9B8070"},
+  {key:"frozen",   name:"Frozen",               color:"#4A6B8A"},
+  {key:"breakfast",name:"Breakfast & Cereal",   color:"#C97B84"},
 ];
 
 const SUGGESTIONS=[
-  {id:"s1",name:"Honey Soy Steak Rice Bowl",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/recipes/honey-soy-steak-rice-bowl",time:"10 min",desc:"Seared steak over jasmine rice with a punchy honey-soy glaze. Weeknight fast.",
-   ingredients:{produce:["Garlic (2 cloves)"],meat:["Eye fillet / rump steak (2 steaks)"],pasta:["Jasmine rice (1.5 cups)"],pantry:["Soy sauce","Oyster sauce","Honey","Olive oil","Salt & pepper"]}},
-  {id:"s2",name:"Chicken Fajita Sweet Potato Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/chicken-fajita-sweet-potato-bowls",time:"45 min",desc:"Spiced sweet potato, smoky fajita chicken, charred capsicum, creamy lime yoghurt.",
-   ingredients:{fm:["Capsicum (2)"],produce:["Brown onion (1)","Garlic (2 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (150g)"],pantry:["Smoked paprika","Cumin","Olive oil","Salt & pepper"]}},
-  {id:"s3",name:"Vodka Chicken Pasta",tag:"Chicken · Pasta",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-vodka-chicken-pasta",time:"20 min",desc:"Rich tomato-ricotta sauce, no cream needed. High-protein twist on a classic.",
-   ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Ricotta (150g)"],pasta:["Rigatoni / pasta (300g)"],pantry:["Mutti Passata (½ bottle)","Olive oil","Smoked paprika","Salt & pepper"]}},
-  {id:"s4",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no heavy cream needed.",
-   ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Parmesan (60g, grated)","Butter (2 tbsp)"],pasta:["Fettuccine (350g)"],pantry:["Chicken stock (500ml)","Olive oil","Salt & pepper"]}},
-  {id:"s5",name:"Greek Chicken Gyros with Tzatziki",tag:"Chicken · Greek",src:"ontrac",url:"https://ontrac5.com/recipes/greek-chicken-gyros-with-tzatziki",time:"15 min",desc:"Herby marinated chicken, house-made tzatziki, warm pita. A Petracca staple.",
-   ingredients:{fm:["Lebanese cucumbers (1)","Flat-leaf parsley (½ bunch)"],produce:["Garlic (3 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (200g)"],pantry:["Dried oregano","Olive oil","Cumin","Salt & pepper"]}},
-  {id:"s6",name:"Chicken Pasta Bake",tag:"Chicken · Bake",src:"rte",url:"https://www.recipetineats.com/chicken-pasta-bake/",time:"45 min",desc:"Big, bubbly, cheesy bake with seasoned chicken and bacon. One dish dinner.",
-   ingredients:{produce:["Garlic (3 cloves)","Brown onion (1)"],meat:["Chicken thighs (700g)"],dairy:["Shredded mozzarella (1.5 cups)","Parmesan (50g)","Butter (1 tbsp)"],pasta:["Penne / pasta (300g)"],pantry:["Mutti Passata (700g)","Chicken stock (250ml)","Olive oil","Smoked paprika","Salt & pepper"]}},
-  {id:"s7",name:"Carne Asada Tacos w/ Chimichurri",tag:"Beef · Mexican",src:"ontrac",url:"https://ontrac5.com/recipes/carne-asada-tacos",time:"10 min",desc:"Jalapeño-lime chimichurri over seared beef in warm tortillas. Serious taco upgrade.",
-   ingredients:{fm:["Flat-leaf parsley (1 bunch)"],produce:["Garlic (4 cloves)","Lemons (1)"],meat:["Eye fillet / rump steak (2 steaks)"],pantry:["Taco shells & wraps","Olive oil","Cumin","Smoked paprika","Salt & pepper"]}},
-  {id:"s8",name:"Baked Salmon & Crispy Potatoes",tag:"Salmon · Tray",src:"ontrac",url:"https://ontrac5.com/collection/weeknight-dinners",time:"30 min",desc:"Lemon herb salmon over crispy potatoes on one tray. Easy cleanup.",
-   ingredients:{fm:["Salmon fillets (2)","Flat-leaf parsley (½ bunch)"],produce:["Garlic (2 cloves)","Lemons (1)","Potatoes (600g)"],pantry:["Olive oil","Dried oregano","Salt & pepper"]}},
-  {id:"s9",name:"Honey Soy Chicken Udon Stir Fry",tag:"Chicken · Asian",src:"ontrac",url:"https://ontrac5.com/collection/dinner",time:"10 min",desc:"Thick udon noodles, honey soy glazed chicken — ready in 10 minutes.",
-   ingredients:{produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],meat:["Chicken thighs (500g)"],pasta:["Udon noodles (2 packs)"],pantry:["Soy sauce","Oyster sauce","Honey","Olive oil","Salt & pepper"]}},
-  {id:"s10",name:"Beef, Broccoli & Edamame Rice",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/collection/dinner",time:"10 min",desc:"Lean beef stir-fried with greens and steamed rice. Clean, fast, high-protein.",
-   ingredients:{produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],meat:["Eye fillet / rump steak (300g, sliced)"],pasta:["Basmati rice (1.5 cups)"],frozen:["Frozen edamame (1 cup)"],pantry:["Soy sauce","Oyster sauce","Olive oil","Salt & pepper"]}},
+  {id:"s1",name:"Honey Soy Steak Rice Bowl",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/recipes/honey-soy-steak-rice-bowl",time:"10 min",desc:"Seared steak over jasmine rice with a punchy honey-soy glaze.",ingredients:{produce:["Garlic (2 cloves)"],meat:["Eye fillet / rump steak (2 steaks)"],pasta:["Jasmine rice (1.5 cups)"],pantry:["Soy sauce","Oyster sauce","Honey","Olive oil","Salt & pepper"]}},
+  {id:"s2",name:"Chicken Fajita Sweet Potato Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/chicken-fajita-sweet-potato-bowls",time:"45 min",desc:"Spiced sweet potato, smoky fajita chicken, charred capsicum, creamy lime yoghurt.",ingredients:{fm:["Capsicum (2)"],produce:["Brown onion (1)","Garlic (2 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (150g)"],pantry:["Smoked paprika","Cumin","Olive oil","Salt & pepper"]}},
+  {id:"s3",name:"Vodka Chicken Pasta",tag:"Chicken · Pasta",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-vodka-chicken-pasta",time:"20 min",desc:"Rich tomato-ricotta sauce. High-protein twist on a classic.",ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Ricotta (150g)"],pasta:["Rigatoni (300g)"],pantry:["Mutti Passata (½ bottle)","Olive oil","Smoked paprika","Salt & pepper"]}},
+  {id:"s4",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no heavy cream needed.",ingredients:{produce:["Garlic (3 cloves)"],meat:["Chicken breast (400g)"],dairy:["Parmesan (60g)","Butter (2 tbsp)"],pasta:["Fettuccine (350g)"],pantry:["Chicken stock (500ml)","Olive oil","Salt & pepper"]}},
+  {id:"s5",name:"Greek Chicken Gyros with Tzatziki",tag:"Chicken · Greek",src:"ontrac",url:"https://ontrac5.com/recipes/greek-chicken-gyros-with-tzatziki",time:"15 min",desc:"Herby marinated chicken, house-made tzatziki, warm pita.",ingredients:{fm:["Lebanese cucumbers (1)","Flat-leaf parsley (½ bunch)"],produce:["Garlic (3 cloves)","Lemons (1)"],meat:["Chicken thighs (600g)"],dairy:["Chobani Greek yoghurt (200g)"],pantry:["Dried oregano","Olive oil","Cumin","Salt & pepper"]}},
+  {id:"s6",name:"Chicken Pasta Bake",tag:"Chicken · Bake",src:"rte",url:"https://www.recipetineats.com/chicken-pasta-bake/",time:"45 min",desc:"Big, bubbly, cheesy bake with seasoned chicken. One dish dinner.",ingredients:{produce:["Garlic (3 cloves)","Brown onion (1)"],meat:["Chicken thighs (700g)"],dairy:["Shredded mozzarella (1.5 cups)","Parmesan (50g)","Butter (1 tbsp)"],pasta:["Penne (300g)"],pantry:["Mutti Passata (700g)","Chicken stock (250ml)","Olive oil","Smoked paprika","Salt & pepper"]}},
+  {id:"s7",name:"Carne Asada Tacos w/ Chimichurri",tag:"Beef · Mexican",src:"ontrac",url:"https://ontrac5.com/recipes/carne-asada-tacos",time:"10 min",desc:"Jalapeño-lime chimichurri over seared beef in warm tortillas.",ingredients:{fm:["Flat-leaf parsley (1 bunch)"],produce:["Garlic (4 cloves)","Lemons (1)"],meat:["Eye fillet / rump steak (2 steaks)"],pantry:["Taco shells & wraps","Olive oil","Cumin","Smoked paprika","Salt & pepper"]}},
+  {id:"s8",name:"Baked Salmon & Crispy Potatoes",tag:"Salmon · Tray",src:"ontrac",url:"https://ontrac5.com/collection/weeknight-dinners",time:"30 min",desc:"Lemon herb salmon over crispy potatoes on one tray.",ingredients:{fm:["Salmon fillets (2)","Flat-leaf parsley (½ bunch)"],produce:["Garlic (2 cloves)","Lemons (1)","Potatoes (600g)"],pantry:["Olive oil","Dried oregano","Salt & pepper"]}},
+  {id:"s9",name:"Honey Soy Chicken Udon Stir Fry",tag:"Chicken · Asian",src:"ontrac",url:"https://ontrac5.com/collection/dinner",time:"10 min",desc:"Thick udon noodles, honey soy glazed chicken — ready in 10 minutes.",ingredients:{produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],meat:["Chicken thighs (500g)"],pasta:["Udon noodles (2 packs)"],pantry:["Soy sauce","Oyster sauce","Honey","Olive oil","Salt & pepper"]}},
+  {id:"s10",name:"Beef, Broccoli & Edamame Rice",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/collection/dinner",time:"10 min",desc:"Lean beef stir-fried with greens and steamed rice.",ingredients:{produce:["Garlic (3 cloves)","Broccolini (1 bunch)"],meat:["Eye fillet / rump steak (300g, sliced)"],pasta:["Basmati rice (1.5 cups)"],frozen:["Frozen edamame (1 cup)"],pantry:["Soy sauce","Oyster sauce","Olive oil","Salt & pepper"]}},
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STATE
+// STATE — all shared keys come from Firebase, rest is local UI state
 // ─────────────────────────────────────────────────────────────────────────────
-function ls(k){try{const v=localStorage.getItem("pantry_"+k);return v?JSON.parse(v):null}catch{return null}}
-function lss(k,v){try{localStorage.setItem("pantry_"+k,JSON.stringify(v))}catch{}}
-
 let state={
   tab:"planner",
-  recipes: ls("recipes") || DEFAULT_RECIPES,
-  weekMeals: ls("weekMeals") || [],
-  checked: {},
+  recipes: DEFAULT_RECIPES,      // synced
+  weekMeals: [],                 // synced
+  checked: {},                   // synced
+  dismissedSuggestions: [],      // synced
   selectedSrc:"own",
   searchQ:"",
   pickDayIndex:null,
-  dismissedSuggestions: ls("dismissedSugs") || [],
+  syncStatus:"connecting",       // connecting | live | syncing
+  loaded: false,
 };
-if(!state.weekMeals.length) state.weekMeals=pickMeals();
 
-function pickMeals(){
-  const eligible=state.recipes.filter(r=>!r.special&&r.active);
-  return [...eligible].sort(()=>Math.random()-.5).slice(0,6);
+// ─────────────────────────────────────────────────────────────────────────────
+// FIREBASE SYNC — listen to all shared keys, re-render on any change
+// ─────────────────────────────────────────────────────────────────────────────
+let syncTimeout=null;
+let loadedKeys={recipes:false, weekMeals:false, checked:false, dismissedSuggestions:false};
+
+function markLoaded(key){
+  loadedKeys[key]=true;
+  if(Object.values(loadedKeys).every(Boolean)&&!state.loaded){
+    state.loaded=true;
+    document.getElementById("loading").classList.add("hidden");
+    render();
+  }
+}
+
+// If Firebase doesn't respond in 4s, show app anyway with defaults
+setTimeout(()=>{
+  if(!state.loaded){
+    state.loaded=true;
+    state.syncStatus="connecting";
+    document.getElementById("loading").classList.add("hidden");
+    render();
+  }
+},4000);
+
+// Listen: recipes
+REFS.recipes.on("value",snap=>{
+  const val=snap.val();
+  if(val){
+    // Firebase returns object with numeric keys — convert back to array
+    state.recipes=Array.isArray(val)?val:Object.values(val);
+  } else {
+    // First run — seed Firebase with defaults
+    REFS.recipes.set(DEFAULT_RECIPES);
+    state.recipes=DEFAULT_RECIPES;
+  }
+  markLoaded("recipes");
+  if(state.loaded) render();
+});
+
+// Listen: weekMeals
+REFS.weekMeals.on("value",snap=>{
+  const val=snap.val();
+  state.weekMeals=val?(Array.isArray(val)?val:Object.values(val)):[];
+  markLoaded("weekMeals");
+  if(state.loaded) render();
+});
+
+// Listen: checked items (shopping list ticks)
+REFS.checked.on("value",snap=>{
+  state.checked=snap.val()||{};
+  markLoaded("checked");
+  if(state.loaded) render();
+});
+
+// Listen: dismissed suggestions
+REFS.dismissedSuggestions.on("value",snap=>{
+  const val=snap.val();
+  state.dismissedSuggestions=val?(Array.isArray(val)?val:Object.values(val)):[];
+  markLoaded("dismissedSuggestions");
+  if(state.loaded) render();
+});
+
+// Connection status indicator
+db.ref(".info/connected").on("value",snap=>{
+  const connected=snap.val();
+  state.syncStatus=connected?"live":"connecting";
+  const dot=document.getElementById("sync-dot");
+  const lbl=document.getElementById("sync-label");
+  if(dot&&lbl){
+    dot.className="sync-dot"+(connected?" live":"");
+    lbl.textContent=connected?"Live · Mark & Maddi":"Reconnecting…";
+  }
+});
+
+// Write helpers — debounced to avoid rapid-fire writes
+function fbSet(ref,val){
+  state.syncStatus="syncing";
+  const dot=document.getElementById("sync-dot");
+  if(dot) dot.className="sync-dot syncing";
+  ref.set(val).then(()=>{
+    state.syncStatus="live";
+    const d=document.getElementById("sync-dot");
+    if(d){d.className="sync-dot live";}
+    const l=document.getElementById("sync-label");
+    if(l) l.textContent="Live · Mark & Maddi";
+  }).catch(()=>{
+    state.syncStatus="connecting";
+    const d=document.getElementById("sync-dot");
+    if(d) d.className="sync-dot";
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DYNAMIC SHOPPING LIST BUILDER
-// Merges staples + recipe ingredients, deduplicates by name-key, labels sources
+// SHOPPING LIST BUILDER
 // ─────────────────────────────────────────────────────────────────────────────
 function buildShoppingList(){
   const aisleMap={};
   AISLES.forEach(a=>{aisleMap[a.key]=[];});
-
-  // 1. Add staples first
   AISLES.forEach(a=>{
     (STAPLES[a.key]||[]).forEach(item=>{
-      aisleMap[a.key].push({...item, staple:true, recipes:[]});
+      aisleMap[a.key].push({...item,staple:true,recipes:[]});
     });
   });
-
-  // 2. Layer in recipe ingredients
   state.weekMeals.forEach(meal=>{
     const recipe=state.recipes.find(r=>r.id===meal.id);
     if(!recipe||!recipe.ingredients) return;
@@ -545,8 +476,7 @@ function buildShoppingList(){
       });
     });
   });
-
-  return AISLES.map(a=>({...a, items:aisleMap[a.key]})).filter(a=>a.items.length>0);
+  return AISLES.map(a=>({...a,items:aisleMap[a.key]})).filter(a=>a.items.length>0);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -557,6 +487,12 @@ const TITLES={planner:"<em>This</em>&nbsp;week",list:"Shopping<br><em>list</em>"
 function render(){
   document.getElementById("page-title").innerHTML=TITLES[state.tab];
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.toggle("active",b.dataset.tab===state.tab));
+  const dot=document.getElementById("sync-dot");
+  const lbl=document.getElementById("sync-label");
+  if(dot&&lbl){
+    dot.className="sync-dot"+(state.syncStatus==="live"?" live":state.syncStatus==="syncing"?" syncing":"");
+    lbl.textContent=state.syncStatus==="live"?"Live · Mark & Maddi":state.syncStatus==="syncing"?"Saving…":"Reconnecting…";
+  }
   const area=document.getElementById("scroll-area");
   if(state.tab==="planner") area.innerHTML=renderPlanner();
   else if(state.tab==="list") area.innerHTML=renderList();
@@ -574,7 +510,7 @@ function renderPlanner(){
   const fmItems=(list.find(a=>a.key==="fm")||{items:[]}).items.length;
   let h=`<div class="week-stats">
     <div class="stat-pill"><div class="stat-num">${state.weekMeals.length}</div><div class="stat-lbl">dinners</div></div>
-    <div class="stat-pill"><div class="stat-num">${totalItems-fmItems}</div><div class="stat-lbl">woolies items</div></div>
+    <div class="stat-pill"><div class="stat-num">${totalItems-fmItems}</div><div class="stat-lbl">woolies</div></div>
     <div class="stat-pill"><div class="stat-num">${fmItems}</div><div class="stat-lbl">mkt items</div></div>
   </div>
   <div class="meals-container" id="meals-container">`;
@@ -610,26 +546,22 @@ function renderList(){
   const done=Object.values(state.checked).filter(Boolean).length;
   const pct=total?Math.round(done/total*100):0;
   const mealCount=state.weekMeals.length;
-
-  let h=``;
-
-  // Dynamic notice
+  let h="";
   if(mealCount===0){
     h+=`<div style="background:#fff;border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 1px 8px rgba(44,32,22,.07);text-align:center">
       <div style="font-size:28px;margin-bottom:8px">📅</div>
       <div style="font-size:13px;font-weight:500;color:var(--text1);margin-bottom:4px">No meals planned yet</div>
-      <div style="font-size:12px;color:var(--text3);line-height:1.5">Head to the Plan tab to choose this week's dinners — your ingredient list will update automatically.</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.5">Head to the Plan tab to choose this week's dinners — your list updates live for both of you.</div>
     </div>`;
   } else {
     h+=`<div style="background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 8px rgba(44,32,22,.06);display:flex;align-items:center;gap:10px">
       <span style="font-size:20px">✨</span>
       <div>
         <div style="font-size:12px;font-weight:500;color:var(--text1)">Based on ${mealCount} meal${mealCount>1?"s":""} this week</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:1px">Recipe ingredients + weekly staples combined</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:1px">Ticked items sync instantly to both phones</div>
       </div>
     </div>`;
   }
-
   h+=`<div class="progress-wrap">
     <div class="progress-meta">
       <span class="progress-text">${done} of ${total} items</span>
@@ -637,7 +569,6 @@ function renderList(){
     </div>
     <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
   </div>`;
-
   list.forEach((aisle,ai)=>{
     if(!aisle.items.length) return;
     h+=`<div class="aisle-block"><div class="card" style="padding:0">
@@ -650,22 +581,20 @@ function renderList(){
       const key=`${aisle.key}-${ii}`;
       const dn=state.checked[key];
       const isFm=aisle.key==="fm";
-      // Recipe badges (up to 2 shown)
       let badgeHtml="";
       if(item.recipes&&item.recipes.length){
         item.recipes.slice(0,2).forEach(r=>{
-          const shortName=r.name.split(" ").slice(0,2).join(" ");
-          badgeHtml+=`<span class="recipe-tag-badge" style="background:${r.color}18;color:${r.color}">${shortName}</span>`;
+          const short=r.name.split(" ").slice(0,2).join(" ");
+          badgeHtml+=`<span class="recipe-tag-badge" style="background:${r.color}18;color:${r.color}">${short}</span>`;
         });
-        if(item.recipes.length>2) badgeHtml+=`<span style="font-size:10px;color:var(--text3)">+${item.recipes.length-2} more</span>`;
+        if(item.recipes.length>2) badgeHtml+=`<span style="font-size:10px;color:var(--text3)">+${item.recipes.length-2}</span>`;
       }
-      const subLine=badgeHtml?`<div class="item-sub">${badgeHtml}</div>`:"";
       h+=`<div class="shop-item" onclick="toggleCheck('${key}')">
         <div class="check-ring ${dn?"done":""}">${dn?"✓":""}</div>
         <div class="item-info">
           <div class="item-nm ${dn?"done":""}">${escHtml(item.n)}${isFm?'<span class="fm-tag">FM</span>':""}</div>
           ${item.qty?`<div class="item-qt">${escHtml(item.qty)}</div>`:""}
-          ${!dn?subLine:""}
+          ${!dn&&badgeHtml?`<div class="item-sub">${badgeHtml}</div>`:""}
         </div>
         ${item.stock&&!dn?`<div class="stock-note">${escHtml(item.stock)}</div>`:""}
       </div>`;
@@ -679,19 +608,16 @@ function renderRecipes(){
   const q=state.searchQ.toLowerCase().trim();
   const order=["own","kic","rte","ontrac","other"];
   const visibleSuggestions=SUGGESTIONS.filter(s=>!state.dismissedSuggestions.includes(s.id));
-
   let h=`<div class="search-wrap">
     <span class="search-icon">🔍</span>
     <input class="search-input" id="recipe-search" placeholder="Search your recipes…"
       value="${escHtml(state.searchQ)}" oninput="updateSearch(this.value)">
     ${state.searchQ?`<button class="search-clear" onclick="updateSearch('')">✕</button>`:""}
   </div>`;
-
   const filtered=state.recipes.filter(r=>{
     if(!q) return true;
     return r.name.toLowerCase().includes(q)||r.tag.toLowerCase().includes(q)||(SOURCES[r.src]||SOURCES.other).label.toLowerCase().includes(q);
   });
-
   let any=false;
   order.forEach(srcKey=>{
     const list=filtered.filter(r=>(r.src||"other")===srcKey);
@@ -711,16 +637,13 @@ function renderRecipes(){
             ${r.url?`<a class="recipe-link" href="${r.url}" target="_blank" onclick="event.stopPropagation()">recipe ↗</a>`:""}
           </div>
         </div>
-        ${r.special
-          ?`<button class="toggle-btn special">✦</button>`
-          :`<button class="toggle-btn ${r.active?"on":"off"}" onclick="toggleRecipe(${r.id})">${r.active?"✓":"+"}</button>`
-        }
+        ${r.special?`<button class="toggle-btn special">✦</button>`
+          :`<button class="toggle-btn ${r.active?"on":"off"}" onclick="toggleRecipe(${r.id})">${r.active?"✓":"+"}</button>`}
         <button class="del-btn" onclick="deleteRecipe(${r.id})">✕</button>
       </div>`;
     });
   });
   if(!any) h+=`<div class="empty"><div class="empty-icon">🔍</div><p>No recipes match.</p></div>`;
-
   if(!q&&visibleSuggestions.length){
     h+=`<div class="section-label" style="margin-top:28px">✨ You might like</div>
     <div class="hint">From your favourite sources — tap Add to include in your recipe bank.</div>`;
@@ -746,46 +669,47 @@ function renderRecipes(){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ACTIONS
+// ACTIONS — all writes go to Firebase → listeners update both phones
 // ─────────────────────────────────────────────────────────────────────────────
-function switchTab(tab){
-  state.tab=tab;
-  state.checked={};  // reset checks when switching tabs so list stays fresh
-  render();
-  document.getElementById("scroll-area").scrollTop=0;
+function switchTab(tab){state.tab=tab;render();document.getElementById("scroll-area").scrollTop=0;}
+
+function pickMeals(){
+  const eligible=state.recipes.filter(r=>!r.special&&r.active);
+  return [...eligible].sort(()=>Math.random()-.5).slice(0,6);
 }
 
 function shuffle(){
   const icon=document.getElementById("shuffle-icon");
   if(icon){icon.classList.add("spin");setTimeout(()=>icon.classList.remove("spin"),400);}
-  setTimeout(()=>{
-    state.weekMeals=pickMeals();
-    lss("weekMeals",state.weekMeals);
-    state.checked={};
-    render();
-  },150);
+  const meals=pickMeals();
+  fbSet(REFS.weekMeals,meals);
+  fbSet(REFS.checked,{});
 }
 
 function removeMealFromWeek(i){
-  state.weekMeals.splice(i,1);
-  lss("weekMeals",state.weekMeals);
-  state.checked={};
-  render();
+  const meals=[...state.weekMeals];meals.splice(i,1);
+  fbSet(REFS.weekMeals,meals);
+  fbSet(REFS.checked,{});
 }
 
-function toggleCheck(key){state.checked[key]=!state.checked[key];render();}
-function resetChecked(){state.checked={};render();}
+function toggleCheck(key){
+  const next={...state.checked,[key]:!state.checked[key]};
+  fbSet(REFS.checked,next);
+}
+
+function resetChecked(){fbSet(REFS.checked,{});}
 
 function toggleRecipe(id){
-  state.recipes=state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r);
-  lss("recipes",state.recipes);render();
+  const updated=state.recipes.map(r=>r.id===id?{...r,active:!r.active}:r);
+  fbSet(REFS.recipes,updated);
 }
 
 function deleteRecipe(id){
-  state.recipes=state.recipes.filter(r=>r.id!==id);
-  state.weekMeals=state.weekMeals.filter(m=>m.id!==id);
-  lss("recipes",state.recipes);lss("weekMeals",state.weekMeals);
-  state.checked={};render();
+  const updatedRecipes=state.recipes.filter(r=>r.id!==id);
+  const updatedMeals=state.weekMeals.filter(m=>m.id!==id);
+  fbSet(REFS.recipes,updatedRecipes);
+  fbSet(REFS.weekMeals,updatedMeals);
+  fbSet(REFS.checked,{});
 }
 
 function updateSearch(v){
@@ -795,30 +719,26 @@ function updateSearch(v){
 }
 
 function addSuggestion(id){
-  const s=SUGGESTIONS.find(x=>x.id===id);
-  if(!s) return;
+  const s=SUGGESTIONS.find(x=>x.id===id);if(!s)return;
   const newR={id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,ingredients:s.ingredients||{}};
-  state.recipes=[...state.recipes,newR];
-  state.dismissedSuggestions=[...state.dismissedSuggestions,id];
-  lss("recipes",state.recipes);lss("dismissedSugs",state.dismissedSuggestions);
-  render();
+  fbSet(REFS.recipes,[...state.recipes,newR]);
+  fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);
 }
 
 function dismissSuggestion(id){
-  state.dismissedSuggestions=[...state.dismissedSuggestions,id];
-  lss("dismissedSugs",state.dismissedSuggestions);render();
+  fbSet(REFS.dismissedSuggestions,[...state.dismissedSuggestions,id]);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DRAG & DROP (desktop)
+// DRAG & DROP
 // ─────────────────────────────────────────────────────────────────────────────
 let dragSrc=null,dragOver=null;
 function onDragStart(e,i){dragSrc=i;e.dataTransfer.effectAllowed="move";setTimeout(()=>{const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("dragging");},0);}
 function onDragOver(e,i){e.preventDefault();e.dataTransfer.dropEffect="move";if(dragOver!==i){document.querySelectorAll(".meal-row").forEach(el=>el.classList.remove("drag-over"));const el=document.querySelector(`[data-index="${i}"]`);if(el)el.classList.add("drag-over");dragOver=i;}}
-function onDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;const meals=[...state.weekMeals];const[moved]=meals.splice(dragSrc,1);meals.splice(i,0,moved);state.weekMeals=meals;lss("weekMeals",state.weekMeals);dragSrc=null;dragOver=null;state.checked={};render();}
+function onDrop(e,i){e.preventDefault();if(dragSrc===null||dragSrc===i)return;const meals=[...state.weekMeals];const[moved]=meals.splice(dragSrc,1);meals.splice(i,0,moved);fbSet(REFS.weekMeals,meals);dragSrc=null;dragOver=null;}
 function onDragEnd(){document.querySelectorAll(".meal-row").forEach(el=>{el.classList.remove("dragging");el.classList.remove("drag-over");});dragSrc=null;dragOver=null;}
 
-// Touch drag (mobile)
+// Touch drag
 let tSrc=null,tEl=null,tClone=null,tStartY=0;
 document.addEventListener("touchstart",e=>{
   const h=e.target.closest(".drag-handle");if(!h)return;
@@ -832,14 +752,12 @@ document.addEventListener("touchstart",e=>{
 document.addEventListener("touchmove",e=>{
   if(tSrc===null||!tClone)return;
   const dy=e.touches[0].clientY-tStartY;
-  tClone.style.top=(tEl.getBoundingClientRect().top+dy-(e.touches[0].clientY-tStartY-0))+"px";
-  tClone.style.top=(parseFloat(tClone.style.top)+dy-(parseFloat(tClone.style.top)-tEl.getBoundingClientRect().top))+"px";
-  const rect=tEl.getBoundingClientRect();
-  tClone.style.top=(rect.top+dy-0)+"px";
+  const r=tEl.getBoundingClientRect();
+  tClone.style.top=(r.top+dy)+"px";
   document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");
   const under=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);
-  const targetRow=under?under.closest(".meal-row"):null;
-  if(targetRow&&targetRow!==tEl)targetRow.style.background="var(--warm1)";
+  const tr=under?under.closest(".meal-row"):null;
+  if(tr&&tr!==tEl)tr.style.background="var(--warm1)";
   e.preventDefault();
 },{passive:false});
 document.addEventListener("touchend",e=>{
@@ -847,13 +765,13 @@ document.addEventListener("touchend",e=>{
   if(tClone){tClone.remove();tClone=null;}
   if(tEl)tEl.style.opacity="";
   const under=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);
-  const targetRow=under?under.closest(".meal-row"):null;
+  const tr=under?under.closest(".meal-row"):null;
   document.querySelectorAll(".meal-row").forEach(el=>el.style.background="");
-  if(targetRow&&targetRow!==tEl){
-    const ti=parseInt(targetRow.dataset.index);
+  if(tr&&tr!==tEl){
+    const ti=parseInt(tr.dataset.index);
     if(!isNaN(ti)&&ti!==tSrc){
       const meals=[...state.weekMeals];const[moved]=meals.splice(tSrc,1);meals.splice(ti,0,moved);
-      state.weekMeals=meals;lss("weekMeals",state.weekMeals);state.checked={};render();
+      fbSet(REFS.weekMeals,meals);
     }
   }
   tSrc=null;tEl=null;
@@ -874,8 +792,8 @@ function renderPickList(){
   const q=(document.getElementById("pick-search-input")||{}).value||"";
   const inWeek=new Set(state.weekMeals.map(m=>m.id));
   const list=state.recipes.filter(r=>{
-    if(r.special||inWeek.has(r.id)) return false;
-    if(!q) return true;
+    if(r.special||inWeek.has(r.id))return false;
+    if(!q)return true;
     return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());
   });
   const el=document.getElementById("pick-list");if(!el)return;
@@ -894,15 +812,12 @@ function renderPickList(){
 function addMealToDay(recipeId){
   const recipe=state.recipes.find(r=>r.id===recipeId);
   if(!recipe||state.pickDayIndex===null)return;
-  if(state.weekMeals.length>state.pickDayIndex){
-    state.weekMeals.splice(state.pickDayIndex,0,recipe);
-    if(state.weekMeals.length>6)state.weekMeals=state.weekMeals.slice(0,6);
-  } else {
-    state.weekMeals.push(recipe);
-  }
-  lss("weekMeals",state.weekMeals);
-  state.checked={};
-  closeModal("modal-pick");render();
+  const meals=[...state.weekMeals];
+  if(meals.length>state.pickDayIndex){meals.splice(state.pickDayIndex,0,recipe);if(meals.length>6)meals.splice(6);}
+  else meals.push(recipe);
+  fbSet(REFS.weekMeals,meals);
+  fbSet(REFS.checked,{});
+  closeModal("modal-pick");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -924,13 +839,10 @@ function renderSrcPicker(){
 function selectSrc(src){state.selectedSrc=src;renderSrcPicker();}
 function validateForm(){document.getElementById("confirm-btn").disabled=!document.getElementById("f-name").value.trim();}
 function submitRecipe(){
-  const name=document.getElementById("f-name").value.trim();
-  if(!name)return;
-  // New recipes get empty ingredients — they'll still show from staples
+  const name=document.getElementById("f-name").value.trim();if(!name)return;
   const r={id:Date.now(),name,tag:document.getElementById("f-tag").value.trim()||"—",src:state.selectedSrc,url:document.getElementById("f-url").value.trim(),special:false,active:true,ingredients:{}};
-  state.recipes=[...state.recipes,r];
-  lss("recipes",state.recipes);
-  closeModal("modal-add");switchTab("recipes");
+  fbSet(REFS.recipes,[...state.recipes,r]);
+  closeModal("modal-add");state.tab="recipes";
 }
 function closeModal(id){document.getElementById(id).style.display="none";}
 
@@ -939,13 +851,12 @@ function closeModal(id){document.getElementById(id).style.display="none";}
 // ─────────────────────────────────────────────────────────────────────────────
 function escHtml(s){return String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
-// Service worker for offline
 if("serviceWorker"in navigator){
-  const sw=`const C="pantry-v2";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.pathname]))));self.addEventListener("fetch",e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))))`;
+  const sw=`const C="pantry-v3";self.addEventListener("install",e=>e.waitUntil(caches.open(C).then(c=>c.addAll([location.pathname]))));self.addEventListener("fetch",e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))))`;
   navigator.serviceWorker.register(URL.createObjectURL(new Blob([sw],{type:"application/javascript"}))).catch(()=>{});
 }
-
-render();
 </script>
 </body>
 </html>
+HTMLEOF
+echo "Done — $(wc -c < /mnt/user-data/outputs/index.html) bytes"
