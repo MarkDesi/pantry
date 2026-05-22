@@ -601,37 +601,37 @@ function closeM(id){document.getElementById(id).style.display="none";}
 const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`];
 async function fetchProxy(url){for(const mk of PROXIES){try{const r=await fetch(mk(url),{signal:AbortSignal.timeout(7000)});if(!r.ok)continue;const t=await r.text();try{const j=JSON.parse(t);if(j.contents)return j.contents;}catch{}return t;}catch{}}return null;}
 function splitIngredient(raw) {
-  // Patterns like "500g chicken thighs", "2 cloves garlic", "1/2 cup olive oil", "1 tsp salt"
-  // We want to extract the leading quantity and leave just the ingredient name
-  const str = raw
-    .replace(/\(\(.*?\)\)/g, '')   // remove double-paren substitutes e.g. ((bell pepper))
-    .replace(/\(,\s*/g, '(')        // fix "(, diced)" -> "(diced)"
+  // Clean up messy scraped strings first
+  let str = raw
+    .replace(/\(\(.*?\)\)/g, '')     // remove ((substitutes))
+    .replace(/\(,\s*/g, '(')          // fix "(, diced)" -> "(diced)"
     .replace(/\s{2,}/g, ' ')
     .trim();
 
-  // Match a leading quantity: numbers, fractions, units
-  const qtyRe = /^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+(?:g|kg|ml|l|lb|oz|cup|cups|tbsp|tsp|teaspoon|tablespoon|bunch|clove|cloves|piece|pieces|can|cans|tin|tins|bottle|bottles|sprig|sprigs|handful|pinch|dash|small|medium|large|x)s?\.?\s+)/i;
-  const match = str.match(qtyRe);
+  let qty = '';
+  let name = str;
 
-  if (match) {
-    const qty = match[1].trim();
-    // Remove qty from front, also clean trailing prep notes in parens
-    let name = str.slice(match[1].length)
-      .replace(/\s*\(.*?\)\s*/g, '')  // remove "(boneless, skinless)" etc
-      .replace(/,.*$/, '')             // remove ", finely minced" etc
-      .trim();
-    // Capitalise first letter
-    name = name.charAt(0).toUpperCase() + name.slice(1);
-    return { n: name || str.trim(), q: qty };
+  // Step 1: pull off any leading quantity expression
+  // Matches: "500g", "1/2 cup", "2 1/4 cups", "1 tsp", "3", "1/2", etc.
+  const qtyRe = /^((?:[\d]+\s+)?[\d¼½¾⅓⅔⅛⅜⅝⅞]*[\/\d\.]*\s*(?:g|kg|ml|l|lb|oz|cups?|tbsps?|tsps?|teaspoons?|tablespoons?|bunchs?|bunches|cloves?|pieces?|cans?|tins?|bottles?|sprigs?|handfuls?|pinch|dash|small|medium|large)s?\s+|(?:[\d]+\s+[\d\/\.]+|[\d¼½¾⅓⅔⅛⅜⅝⅞\/\.]+)\s+|[\d]+\s+)/i;
+
+  const m = str.match(qtyRe);
+  if (m) {
+    qty = m[1].trim();
+    name = str.slice(m[1].length).trim();
   }
 
-  // No leading quantity found — clean up name and leave qty blank
-  let name = str
-    .replace(/\s*\(.*?\)\s*/g, '')
-    .replace(/,.*$/, '')
+  // Step 2: clean the ingredient name — remove prep notes
+  name = name
+    .replace(/\s*\([^)]*\)\s*/g, ' ')  // remove (boneless, skinless) etc
+    .replace(/,.*$/, '')                 // remove ", finely minced" etc
+    .replace(/\s{2,}/g, ' ')
     .trim();
-  name = name.charAt(0).toUpperCase() + name.slice(1);
-  return { n: name || str.trim(), q: '' };
+
+  // Capitalise
+  if (name) name = name.charAt(0).toUpperCase() + name.slice(1);
+
+  return { n: name || str.trim(), q: qty };
 }
 
 function catIngs(list) {
