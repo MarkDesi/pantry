@@ -249,18 +249,29 @@ async function fbGet(path) {
 }
 
 async function fbPut(path, val) {
+  // Update local state immediately so UI never waits on network
+  const key = path.replace("shared/","");
+  if (key === "meals")     { S.meals = val && !Array.isArray(val) ? Object.values(val) : (val||[]); go(S.tab); }
+  if (key === "checked")   { S.checked = val||{}; go(S.tab); }
+  if (key === "locked")    { S.locked = !!val; go(S.tab); }
+  if (key === "recipes")   { S.recipes = val && !Array.isArray(val) ? Object.values(val) : (val||[]); go(S.tab); }
+  if (key === "lastWeek")  { S.lastWeek = val && !Array.isArray(val) ? Object.values(val) : (val||[]); }
+  if (key === "staples")   { S.staples = val && !Array.isArray(val) ? Object.values(val) : (val||[]); go(S.tab); }
+  if (key === "dismissed") { S.dismissed = val && !Array.isArray(val) ? Object.values(val) : (val||[]); go(S.tab); }
+
+  // Then sync to Firebase in background
   syncUI("sync");
   try {
-    await fetch(FB + "/" + path + ".json", {
+    const r = await fetch(FB + "/" + path + ".json", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(val)
     });
-    syncUI("live");
+    if (r.ok) syncUI("live");
+    else { console.warn("fbPut HTTP error:", r.status); syncUI("off"); }
   } catch(e) {
+    console.warn("fbPut failed:", path, e.message);
     syncUI("off");
-    // retry
-    setTimeout(() => fbPut(path, val), 3000);
   }
 }
 
