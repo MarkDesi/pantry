@@ -600,7 +600,68 @@ function closeM(id){document.getElementById(id).style.display="none";}
 // ─────────────────────────────────────────────────────────────────
 const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`];
 async function fetchProxy(url){for(const mk of PROXIES){try{const r=await fetch(mk(url),{signal:AbortSignal.timeout(7000)});if(!r.ok)continue;const t=await r.text();try{const j=JSON.parse(t);if(j.contents)return j.contents;}catch{}return t;}catch{}}return null;}
-function catIngs(list){const m={};AK.forEach(k=>{m[k]=[];});const rules=[{k:"meat",w:["chicken","beef","mince","steak","lamb","pork","sausage","bacon","prawn","shrimp","salmon","tuna","fish","gyoza","dumpling","seafood"]},{k:"dairy",w:["milk","cream","butter","cheese","parmesan","mozzarella","ricotta","yoghurt","yogurt","egg","feta","halloumi","sour cream"]},{k:"pasta",w:["pasta","spaghetti","fettuccine","penne","rigatoni","lasagne","rice","noodle","udon","ramen","risoni","orzo"]},{k:"frozen",w:["frozen","edamame","hashbrown"]},{k:"bakery",w:["bread","sourdough","bun","roll","pita","wrap","tortilla","pizza base","crumpet"]},{k:"fm",w:["cucumber","capsicum","carrot","avocado","banana","zucchini","lettuce","spinach","salad","parsley","coriander","basil","mint","lemon","lime","mango","berry","tomato","onion"]},{k:"produce",w:["garlic","potato","sweet potato","mushroom","ginger","chilli","celery","broccolini","broccoli"]},{k:"breakfast",w:["oat","cereal","granola","weetbix","peanut butter"]}];list.forEach(raw=>{const l=raw.toLowerCase();let placed=false;for(const rule of rules){if(rule.w.some(w=>l.includes(w))){m[rule.k].push({n:raw.trim(),q:""});placed=true;break;}}if(!placed&&raw.trim())m.pantry.push({n:raw.trim(),q:""});});AK.forEach(k=>{if(!m[k].length)delete m[k];});return m;}
+function splitIngredient(raw) {
+  // Patterns like "500g chicken thighs", "2 cloves garlic", "1/2 cup olive oil", "1 tsp salt"
+  // We want to extract the leading quantity and leave just the ingredient name
+  const str = raw
+    .replace(/\(\(.*?\)\)/g, '')   // remove double-paren substitutes e.g. ((bell pepper))
+    .replace(/\(,\s*/g, '(')        // fix "(, diced)" -> "(diced)"
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+
+  // Match a leading quantity: numbers, fractions, units
+  const qtyRe = /^([\d¼½¾⅓⅔⅛⅜⅝⅞\/\.\s]+(?:g|kg|ml|l|lb|oz|cup|cups|tbsp|tsp|teaspoon|tablespoon|bunch|clove|cloves|piece|pieces|can|cans|tin|tins|bottle|bottles|sprig|sprigs|handful|pinch|dash|small|medium|large|x)s?\.?\s+)/i;
+  const match = str.match(qtyRe);
+
+  if (match) {
+    const qty = match[1].trim();
+    // Remove qty from front, also clean trailing prep notes in parens
+    let name = str.slice(match[1].length)
+      .replace(/\s*\(.*?\)\s*/g, '')  // remove "(boneless, skinless)" etc
+      .replace(/,.*$/, '')             // remove ", finely minced" etc
+      .trim();
+    // Capitalise first letter
+    name = name.charAt(0).toUpperCase() + name.slice(1);
+    return { n: name || str.trim(), q: qty };
+  }
+
+  // No leading quantity found — clean up name and leave qty blank
+  let name = str
+    .replace(/\s*\(.*?\)\s*/g, '')
+    .replace(/,.*$/, '')
+    .trim();
+  name = name.charAt(0).toUpperCase() + name.slice(1);
+  return { n: name || str.trim(), q: '' };
+}
+
+function catIngs(list) {
+  const m = {}; AK.forEach(k => { m[k] = []; });
+  const rules = [
+    {k:"meat",     w:["chicken","beef","mince","steak","lamb","pork","sausage","bacon","prawn","shrimp","salmon","tuna","fish","gyoza","dumpling","seafood"]},
+    {k:"dairy",    w:["milk","cream","butter","cheese","parmesan","mozzarella","ricotta","yoghurt","yogurt","egg","feta","halloumi","sour cream"]},
+    {k:"pasta",    w:["pasta","spaghetti","fettuccine","penne","rigatoni","lasagne","rice","noodle","udon","ramen","risoni","orzo"]},
+    {k:"frozen",   w:["frozen","edamame","hashbrown"]},
+    {k:"bakery",   w:["bread","sourdough","bun","roll","pita","wrap","tortilla","pizza base","crumpet"]},
+    {k:"fm",       w:["cucumber","capsicum","capsicums","carrot","avocado","banana","zucchini","lettuce","spinach","salad","parsley","coriander","basil","mint","lemon","lime","mango","berry","tomato","onion","spring onion","green onion"]},
+    {k:"produce",  w:["garlic","potato","sweet potato","mushroom","ginger","chilli","chili","celery","broccolini","broccoli","pepper flakes"]},
+    {k:"breakfast",w:["oat","cereal","granola","weetbix","peanut butter"]},
+  ];
+  list.forEach(raw => {
+    if (!raw || !raw.trim()) return;
+    const parsed = splitIngredient(raw);
+    const l = parsed.n.toLowerCase();
+    let placed = false;
+    for (const rule of rules) {
+      if (rule.w.some(w => l.includes(w))) {
+        m[rule.k].push(parsed);
+        placed = true; break;
+      }
+    }
+    if (!placed) m.pantry.push(parsed);
+  });
+  AK.forEach(k => { if (!m[k].length) delete m[k]; });
+  return m;
+}
 function onUrl(val){clearTimeout(S.scrapeTimer);S.scrapedIngs={};if(!val||!val.startsWith("http")){document.getElementById("scrapest").className="scrapest";return;}if(val.includes("recipetineats.com"))selSrc("rte");else if(val.includes("ontrac5.com"))selSrc("ontrac");else if(val.includes("kic"))selSrc("kic");S.scrapeTimer=setTimeout(()=>doScrape(val),800);}
 async function doScrape(url){
   const st=document.getElementById("scrapest");st.className="scrapest loading";st.textContent="Fetching recipe…";
