@@ -423,18 +423,65 @@ let state={
 };
 
 // ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
+// ── LOADING — show app after all critical keys respond OR after 2s ─────────────
+// Non-critical keys (staples, costHistory, lastWeek) don't block the initial render.
+const CRITICAL_KEYS=["recipes","weekMeals","checked"];
 let lk={recipes:false,weekMeals:false,checked:false,dismissedSuggestions:false,locked:false,lastWeek:false,staples:false,costHistory:false};
-function markLoaded(k){lk[k]=true;if(Object.values(lk).every(Boolean)&&!state.loaded){state.loaded=true;document.getElementById("loading").classList.add("hidden");render();}}
-setTimeout(()=>{if(!state.loaded){state.loaded=true;document.getElementById("loading").classList.add("hidden");render();}},4000);
+function markLoaded(k){
+  lk[k]=true;
+  const criticalDone=CRITICAL_KEYS.every(k=>lk[k]);
+  if(criticalDone&&!state.loaded){
+    state.loaded=true;
+    document.getElementById("loading").classList.add("hidden");
+    render();
+  }
+}
+// Hard fallback — show app after 2s regardless
+setTimeout(()=>{
+  if(!state.loaded){
+    state.loaded=true;
+    document.getElementById("loading").classList.add("hidden");
+    render();
+  }
+},2000);
 
-REFS.recipes.on("value",s=>{const v=s.val();if(v)state.recipes=Array.isArray(v)?v:Object.values(v);else{REFS.recipes.set(DEFAULT_RECIPES);state.recipes=DEFAULT_RECIPES;}markLoaded("recipes");if(state.loaded)render();});
-REFS.weekMeals.on("value",s=>{const v=s.val();state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];markLoaded("weekMeals");if(state.loaded)render();});
-REFS.checked.on("value",s=>{state.checked=s.val()||{};markLoaded("checked");if(state.loaded)render();});
-REFS.dismissedSuggestions.on("value",s=>{const v=s.val();state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];markLoaded("dismissedSuggestions");if(state.loaded)render();});
-REFS.locked.on("value",s=>{state.locked=!!s.val();markLoaded("locked");if(state.loaded)render();});
-REFS.lastWeek.on("value",s=>{const v=s.val();state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];markLoaded("lastWeek");if(state.loaded)render();});
-REFS.staples.on("value",s=>{const v=s.val();if(v)state.staples=Array.isArray(v)?v:Object.values(v);else{REFS.staples.set(DEFAULT_STAPLES);state.staples=DEFAULT_STAPLES;}markLoaded("staples");if(state.loaded)render();});
-REFS.costHistory.on("value",s=>{const v=s.val();state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];markLoaded("costHistory");if(state.loaded)render();});
+REFS.recipes.on("value",s=>{
+  const v=s.val();
+  if(v) state.recipes=Array.isArray(v)?v:Object.values(v);
+  else { REFS.recipes.set(DEFAULT_RECIPES); state.recipes=DEFAULT_RECIPES; }
+  markLoaded("recipes"); if(state.loaded)render();
+});
+REFS.weekMeals.on("value",s=>{
+  const v=s.val(); state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("weekMeals"); if(state.loaded)render();
+});
+REFS.checked.on("value",s=>{
+  state.checked=s.val()||{};
+  markLoaded("checked"); if(state.loaded)render();
+});
+// Non-critical — mark loaded immediately with defaults, update when data arrives
+REFS.dismissedSuggestions.on("value",s=>{
+  const v=s.val(); state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("dismissedSuggestions"); if(state.loaded)render();
+});
+REFS.locked.on("value",s=>{
+  state.locked=!!s.val();
+  markLoaded("locked"); if(state.loaded)render();
+});
+REFS.lastWeek.on("value",s=>{
+  const v=s.val(); state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("lastWeek"); if(state.loaded)render();
+});
+REFS.staples.on("value",s=>{
+  const v=s.val();
+  if(v) state.staples=Array.isArray(v)?v:Object.values(v);
+  else { REFS.staples.set(DEFAULT_STAPLES); state.staples=DEFAULT_STAPLES; }
+  markLoaded("staples"); if(state.loaded)render();
+});
+REFS.costHistory.on("value",s=>{
+  const v=s.val(); state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];
+  markLoaded("costHistory"); if(state.loaded)render();
+});
 db.ref(".info/connected").on("value",s=>{state.syncStatus=s.val()?"live":"connecting";setSyncUI(state.syncStatus);});
 
 function setSyncUI(st){
