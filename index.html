@@ -230,24 +230,11 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016;-webkit-f
 .receipt-preview{width:100%;border-radius:12px;margin-bottom:14px;max-height:200px;object-fit:cover}
 .receipt-result{background:var(--warm1);border-radius:12px;padding:12px 14px;font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:14px;max-height:200px;overflow-y:auto}
 
-/* LOADING */
-#loading{position:fixed;inset:0;background:var(--cream);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;transition:opacity .4s}
-#loading.hidden{opacity:0;pointer-events:none}
-.loading-title{font-family:'Fraunces',serif;font-size:32px;color:var(--dark);margin-bottom:8px}
-.loading-title em{font-style:italic;color:var(--brown)}
-.loading-sub{font-size:13px;color:var(--text3)}
-.loading-dots{display:flex;gap:6px;margin-top:20px}
-.loading-dot{width:6px;height:6px;border-radius:50%;background:var(--warm3);animation:dotPulse 1.2s infinite}
-.loading-dot:nth-child(2){animation-delay:.2s}.loading-dot:nth-child(3){animation-delay:.4s}
-@keyframes dotPulse{0%,80%,100%{transform:scale(1);opacity:.4}40%{transform:scale(1.3);opacity:1}}
+
 </style>
 </head>
 <body>
-<div id="loading">
-  <div class="loading-title"><em>Pantry</em></div>
-  <div class="loading-sub">Syncing with Mark &amp; Maddi…</div>
-  <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
-</div>
+
 <div id="app">
   <div class="app-header">
     <div class="eyebrow"><span class="sync-dot" id="sync-dot"></span><span id="sync-label">Connecting…</span></div>
@@ -418,69 +405,39 @@ const SUGGESTIONS=[
 let state={
   tab:"planner",recipes:DEFAULT_RECIPES,weekMeals:[],lastWeek:[],checked:{},
   locked:false,dismissedSuggestions:[],staples:DEFAULT_STAPLES,costHistory:[],
-  selectedSrc:"own",searchQ:"",pickDayIndex:null,syncStatus:"connecting",loaded:false,
+  selectedSrc:"own",searchQ:"",pickDayIndex:null,syncStatus:"connecting",
   editingRecipeId:null,editingIngredients:{},receiptFile:null,receiptB64:null,
 };
 
-// ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
-// ── LOADING — show app after all critical keys respond OR after 2s ─────────────
-// Non-critical keys (staples, costHistory, lastWeek) don't block the initial render.
-const CRITICAL_KEYS=["recipes","weekMeals","checked"];
-let lk={recipes:false,weekMeals:false,checked:false,dismissedSuggestions:false,locked:false,lastWeek:false,staples:false,costHistory:false};
-function markLoaded(k){
-  lk[k]=true;
-  const criticalDone=CRITICAL_KEYS.every(k=>lk[k]);
-  if(criticalDone&&!state.loaded){
-    state.loaded=true;
-    document.getElementById("loading").classList.add("hidden");
-    render();
-  }
-}
-// Hard fallback — show app after 2s regardless
-setTimeout(()=>{
-  if(!state.loaded){
-    state.loaded=true;
-    document.getElementById("loading").classList.add("hidden");
-    render();
-  }
-},2000);
+// Render immediately with defaults — Firebase will update as data arrives
+render();
 
+// ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
+// ── FIREBASE LISTENERS — app shows immediately, data streams in ───────────────
+// No loading gate. App renders with defaults instantly, Firebase updates re-render.
 REFS.recipes.on("value",s=>{
-  const v=s.val();
-  if(v) state.recipes=Array.isArray(v)?v:Object.values(v);
-  else { REFS.recipes.set(DEFAULT_RECIPES); state.recipes=DEFAULT_RECIPES; }
-  markLoaded("recipes"); if(state.loaded)render();
+  try{const v=s.val();if(v)state.recipes=Array.isArray(v)?v:Object.values(v);else{REFS.recipes.set(DEFAULT_RECIPES);state.recipes=DEFAULT_RECIPES;}render();}catch(e){console.warn("recipes",e);}
 });
 REFS.weekMeals.on("value",s=>{
-  const v=s.val(); state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];
-  markLoaded("weekMeals"); if(state.loaded)render();
+  try{const v=s.val();state.weekMeals=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("weekMeals",e);}
 });
 REFS.checked.on("value",s=>{
-  state.checked=s.val()||{};
-  markLoaded("checked"); if(state.loaded)render();
+  try{state.checked=s.val()||{};render();}catch(e){console.warn("checked",e);}
 });
-// Non-critical — mark loaded immediately with defaults, update when data arrives
 REFS.dismissedSuggestions.on("value",s=>{
-  const v=s.val(); state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];
-  markLoaded("dismissedSuggestions"); if(state.loaded)render();
+  try{const v=s.val();state.dismissedSuggestions=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("dismissedSuggestions",e);}
 });
 REFS.locked.on("value",s=>{
-  state.locked=!!s.val();
-  markLoaded("locked"); if(state.loaded)render();
+  try{state.locked=!!s.val();render();}catch(e){console.warn("locked",e);}
 });
 REFS.lastWeek.on("value",s=>{
-  const v=s.val(); state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];
-  markLoaded("lastWeek"); if(state.loaded)render();
+  try{const v=s.val();state.lastWeek=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("lastWeek",e);}
 });
 REFS.staples.on("value",s=>{
-  const v=s.val();
-  if(v) state.staples=Array.isArray(v)?v:Object.values(v);
-  else { REFS.staples.set(DEFAULT_STAPLES); state.staples=DEFAULT_STAPLES; }
-  markLoaded("staples"); if(state.loaded)render();
+  try{const v=s.val();if(v)state.staples=Array.isArray(v)?v:Object.values(v);else{REFS.staples.set(DEFAULT_STAPLES);state.staples=DEFAULT_STAPLES;}render();}catch(e){console.warn("staples",e);}
 });
 REFS.costHistory.on("value",s=>{
-  const v=s.val(); state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];
-  markLoaded("costHistory"); if(state.loaded)render();
+  try{const v=s.val();state.costHistory=v?(Array.isArray(v)?v:Object.values(v)):[];render();}catch(e){console.warn("costHistory",e);}
 });
 db.ref(".info/connected").on("value",s=>{state.syncStatus=s.val()?"live":"connecting";setSyncUI(state.syncStatus);});
 
