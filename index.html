@@ -448,6 +448,25 @@ function buildList(){
   S.oos.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],oos:true});});
   // Add extras (one-off items like dog food, toilet paper etc)
   S.extras.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],extra:true});});
+  // Cross-aisle deduplication — merge items with the same name across different aisles
+  // Keep the item in the aisle it first appeared, merge qty and recipes from duplicates
+  const seen={};
+  AK.forEach(ak=>{
+    map[ak]=map[ak].filter(item=>{
+      const nk=item.n.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[\s,]+/).slice(0,3).join(" ");
+      if(seen[nk]){
+        // Merge into the existing item
+        const ex=seen[nk];
+        if(item.q&&ex.q&&item.q!==ex.q&&!ex.q.includes(item.q))ex.q=mergeQty(ex.q,item.q);
+        else if(item.q&&!ex.q)ex.q=item.q;
+        if(item.recipes)item.recipes.forEach(r=>{if(!ex.recipes.find(x=>x.id===r.id))ex.recipes.push(r);});
+        return false; // remove duplicate
+      }
+      seen[nk]=item;
+      return true;
+    });
+  });
+
   // Mark skipped items (hidden this week but not permanently removed)
   return AISLES.map(a=>({...a,items:map[a.key].filter(item=>{
     const skipKey=a.key+":"+item.n;
