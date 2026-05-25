@@ -349,6 +349,10 @@ async function initDB(){
     if(Array.isArray(rows)){rows.forEach(row=>{pollV[row.key]=row.value;applyKey(row.key,row.value);});syncUI("live");}
   }catch(e){syncUI("off");}
   checkWeekReset();
+  // Migrate stale aisle order (old fm/produce keys → fresh)
+  if(S.aisleOrder&&S.aisleOrder.length&&(S.aisleOrder.includes("fm")||S.aisleOrder.includes("produce"))){
+    save("aisleOrder",[]);
+  }
   go(S.tab);
   setInterval(poll,3000);
 }
@@ -817,7 +821,20 @@ function skipItem(aisleKey,name){const k=aisleKey+":"+name;save("skipped",{...S.
 function toggleAisle(key){save("collapsedAisles",{...S.collapsedAisles,[key]:!S.collapsedAisles[key]});}
 function moveAisleUp(key){const order=getAisleOrder();const i=order.indexOf(key);if(i<=0)return;const o=[...order];[o[i-1],o[i]]=[o[i],o[i-1]];save("aisleOrder",o);}
 function moveAisleDown(key){const order=getAisleOrder();const i=order.indexOf(key);if(i<0||i>=order.length-1)return;const o=[...order];[o[i],o[i+1]]=[o[i+1],o[i]];save("aisleOrder",o);}
-function getAisleOrder(){if(S.aisleOrder&&S.aisleOrder.length)return S.aisleOrder;return AISLES.map(a=>a.key);}
+function getAisleOrder(){
+  if(S.aisleOrder&&S.aisleOrder.length){
+    // Migrate old fm/produce keys to fresh
+    const migrated=S.aisleOrder.map(k=>k==="fm"||k==="produce"?"fresh":k);
+    // Remove duplicates
+    const seen=new Set();
+    const deduped=migrated.filter(k=>{if(seen.has(k))return false;seen.add(k);return true;});
+    // Make sure fresh is included and all current aisles are represented
+    const allKeys=AISLES.map(a=>a.key);
+    const missing=allKeys.filter(k=>!deduped.includes(k));
+    return [...deduped.filter(k=>allKeys.includes(k)),...missing];
+  }
+  return AISLES.map(a=>a.key);
+}
 function toggleBatchExtra(id){const rec=S.recipes.find(r=>r.id===id);if(!rec)return;if(S.batchExtra&&S.batchExtra.id===id)save("batchExtra",null);else save("batchExtra",{id:rec.id,name:rec.name,src:rec.src,ingredients:rec.ingredients||{}});}
 function updStaple(si,ii,f,v){const u=JSON.parse(JSON.stringify(S.staples));u[si].items[ii][f]=v;save("staples",u);}
 function rmStaple(si,ii){const u=JSON.parse(JSON.stringify(S.staples));u[si].items.splice(ii,1);save("staples",u);}
