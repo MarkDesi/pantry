@@ -257,6 +257,19 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
     <div class="picklist" id="plist"></div>
   </div>
 </div>
+<div class="bd" id="m-extra" style="display:none" onclick="if(event.target===this)closeM('m-extra')">
+  <div class="sh">
+    <div class="hndl"></div>
+    <div class="shtl">Add an <em>extra item</em></div>
+    <div class="shsub">One-off items for this week — dog food, toilet paper, anything not in your usual list.</div>
+    <div class="flbl">Item name *</div>
+    <input class="fin" id="ex-name" placeholder="e.g. Dog food, Toilet paper" oninput="document.getElementById('ex-btn').disabled=!this.value.trim()">
+    <div class="flbl">Quantity (optional)</div>
+    <input class="fin" id="ex-qty" placeholder="e.g. 1 bag, 2 rolls">
+    <button class="cbtn" id="ex-btn" onclick="submitExtra()" disabled>Add to list</button>
+  </div>
+</div>
+
 <div class="bd" id="m-skipped" style="display:none" onclick="if(event.target===this)closeM('m-skipped')">
   <div class="sh">
     <div class="hndl"></div>
@@ -848,11 +861,20 @@ function updQ(v){S.q=v;go("recipes");const el=document.getElementById("rsrch");i
 function addSugg(id){const s=SUGG.find(x=>x.id===id);if(!s)return;save("recipes",[...S.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,season:s.season||"all",batch:false,notes:"",rating:0,ingredients:s.ingredients||{}}]);save("dismissed",[...S.dismissed,id]);}
 function disSugg(id){save("dismissed",[...S.dismissed,id]);}
 function cycleStock(e,name){e.stopPropagation();const cur=S.stockLevels[name]||"low";const next=cur==="low"?"half":cur==="half"?"full":"low";save("stockLevels",{...S.stockLevels,[name]:next});}
-function promptExtra(){
-  const n=prompt("Item name (e.g. Dog food, Toilet paper):");
+function promptExtra(){openExtra();}
+function openExtra(){
+  document.getElementById("ex-name").value="";
+  document.getElementById("ex-qty").value="";
+  document.getElementById("ex-btn").disabled=true;
+  document.getElementById("m-extra").style.display="flex";
+  setTimeout(()=>document.getElementById("ex-name").focus(),300);
+}
+function submitExtra(){
+  const n=document.getElementById("ex-name").value.trim();
   if(!n)return;
-  const q=prompt("Quantity (optional):","");
-  save("extras",[...S.extras,{n:n.trim(),q:q||""}]);
+  const q=document.getElementById("ex-qty").value.trim();
+  save("extras",[...S.extras,{n,q}]);
+  closeM("m-extra");
 }
 function removeExtra(i){const o=[...S.extras];o.splice(i,1);save("extras",o);}
 function promptOOS(){const n=prompt("Item name:");if(!n)return;const q=prompt("Quantity (optional):","");save("oos",[...S.oos,{n,q:q||""}]);}
