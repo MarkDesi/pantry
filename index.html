@@ -91,7 +91,8 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .pmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
 .ptxt{font-size:12px;color:var(--text3)}
 .rbtn{font-size:12px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif}
-.aislecard{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:9px;box-shadow:0 1px 6px rgba(44,32,22,.06)}
+.aislecard{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:9px;box-shadow:0 1px 6px rgba(44,32,22,.06);transition:all .2s}
+.aisle-done{opacity:.65}
 .aislehd{display:flex;align-items:center;gap:8px;padding:9px 14px 7px}
 .adot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .anm{font-size:12px;font-weight:500;color:var(--text2);flex:1}
@@ -284,7 +285,9 @@ function applyKey(key,value){
   if(key==="oos")      S.oos=arr(value);
   if(key==="extras")   S.extras=arr(value);
   if(key==="skipped")  S.skipped=value||{};
-  if(key==="weekStart") S.weekStart=value||"";
+  if(key==="weekStart")     S.weekStart=value||"";
+  if(key==="collapsedAisles") S.collapsedAisles=value||{};
+  if(key==="aisleOrder")      S.aisleOrder=arr(value);
   if(key==="stockLevels")S.stockLevels=value||{};
   if(key==="cookCount")S.cookCount=value||{};
 }
@@ -358,7 +361,7 @@ var S={
   notes:"",oos:[],stockLevels:{},cookCount:{},extras:[],skipped:{},
   sync:"off",editId:null,editIngs:{},selSrc:"own",selSeason:"all",
   q:"",pickDay:null,scrapeTimer:null,scrapedIngs:{},
-  listFMOnly:false,weekStart:"",
+  listFMOnly:false,weekStart:"",collapsedAisles:{},aisleOrder:[],
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────
@@ -561,28 +564,55 @@ function rList(){
     <button onclick="promptExtra()" style="flex:1;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer">＋ Extra item</button>
   </div>`;
   h+=`<div class="pmeta"><span class="ptxt">${done} of ${tot} items</span>${done?`<button class="rbtn" onclick="resetChecked()">Reset</button>`:""}</div><div class="prog"><div class="progf" style="width:${pct}%"></div></div>`;
+  // Sort aisles by user order
+  const aisleOrder=getAisleOrder();
+  displayList.sort((a,b)=>{
+    const ai=aisleOrder.indexOf(a.key),bi=aisleOrder.indexOf(b.key);
+    return (ai===-1?999:ai)-(bi===-1?999:bi);
+  });
   displayList.forEach((aisle,ai)=>{
     if(!aisle.items.length)return;
-    h+=`<div class="aislecard"><div class="aislehd"><div class="adot" style="background:${aisle.color}"></div><span class="anm">${aisle.name}</span><span class="act">${aisle.items.length}</span></div>`;
-    aisle.items.forEach((item,ii)=>{
-      const key=aisle.key+"-"+ii;const dn=S.checked[key];
-      const sl=S.stockLevels[item.n]||"low";
-      const slLabel=sl==="full"?"✓ Full":sl==="half"?"½ Half":"— Low";
-      const slCls=sl==="full"?"stock-full":sl==="half"?"stock-half":"stock-low";
-      let badges="";if(item.recipes&&item.recipes.length)item.recipes.forEach(r=>{badges+=`<span class="sbadge" style="background:${r.color}15;color:${r.color};border:1px solid ${r.color}30">${esc(r.name)}${r.batch?" 📦":""}</span>`;});
-      h+=`<div class="srow" onclick="chk('${key}')">
-        <div class="chk${dn?" done":""}">${dn?"✓":""}</div>
-        <div class="sinfo">
-          <div class="snm${dn?" done":""}">${esc(item.n)}${aisle.key==="fm"?'<span class="fmtag">FM</span>':""}</div>
-          ${item.q?`<div class="sqty">${esc(item.q)}</div>`:""}
-          ${!dn&&badges?`<div class="sbadges">${badges}</div>`:""}
-        </div>
-        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
-          ${!dn?`<button class="stock-btn ${slCls}" onclick="cycleStock(event,'${esc(item.n)}')">${slLabel}</button>`:""}
-          ${!dn?`<button onclick="skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
+    const doneCount=aisle.items.filter((_,ii)=>S.checked[aisle.key+"-"+ii]).length;
+    const allDone=doneCount===aisle.items.length&&aisle.items.length>0;
+    // Auto-collapse when all items ticked, but user can override
+    const isCollapsed=S.collapsedAisles[aisle.key]!==undefined
+      ?S.collapsedAisles[aisle.key]
+      :allDone;
+    const aisleIdx=aisleOrder.indexOf(aisle.key);
+    const isFirst=aisleIdx===0||(aisleOrder.slice(0,aisleIdx).every(k=>!displayList.find(a=>a.key===k)));
+    const isLast=aisleIdx===aisleOrder.length-1||(aisleOrder.slice(aisleIdx+1).every(k=>!displayList.find(a=>a.key===k)));
+    h+=`<div class="aislecard${allDone?" aisle-done":""}">
+      <div class="aislehd" onclick="toggleAisle('${aisle.key}')" style="cursor:pointer">
+        <div class="adot" style="background:${aisle.color}"></div>
+        <span class="anm">${aisle.name}</span>
+        <span class="act">${allDone?"✓":doneCount+"/"+aisle.items.length}</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:6px" onclick="event.stopPropagation()">
+          <span style="font-size:13px;color:var(--text3);line-height:1;padding:0 4px">${isCollapsed?"▸":"▾"}</span>
+          <button onclick="moveAisleUp('${aisle.key}')" style="background:var(--warm1);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2);padding:6px 13px;line-height:1;font-weight:600" title="Move up">↑</button>
+          <button onclick="moveAisleDown('${aisle.key}')" style="background:var(--warm1);border:none;border-radius:8px;font-size:13px;cursor:pointer;color:var(--text2);padding:6px 13px;line-height:1;font-weight:600" title="Move down">↓</button>
         </div>
       </div>`;
-    });
+    if(!isCollapsed){
+      aisle.items.forEach((item,ii)=>{
+        const key=aisle.key+"-"+ii;const dn=S.checked[key];
+        const sl=S.stockLevels[item.n]||"low";
+        const slLabel=sl==="full"?"✓ Full":sl==="half"?"½ Half":"— Low";
+        const slCls=sl==="full"?"stock-full":sl==="half"?"stock-half":"stock-low";
+        let badges="";if(item.recipes&&item.recipes.length)item.recipes.forEach(r=>{badges+=`<span class="sbadge" style="background:${r.color}15;color:${r.color};border:1px solid ${r.color}30">${esc(r.name)}${r.batch?" 📦":""}</span>`;});
+        h+=`<div class="srow" onclick="chk('${key}')">
+          <div class="chk${dn?" done":""}">${dn?"✓":""}</div>
+          <div class="sinfo">
+            <div class="snm${dn?" done":""}">${esc(item.n)}${aisle.key==="fm"?'<span class="fmtag">FM</span>':""}</div>
+            ${item.q?`<div class="sqty">${esc(item.q)}</div>`:""}
+            ${!dn&&badges?`<div class="sbadges">${badges}</div>`:""}
+          </div>
+          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+            ${!dn?`<button class="stock-btn ${slCls}" onclick="cycleStock(event,'${esc(item.n)}')">${slLabel}</button>`:""}
+            ${!dn?`<button onclick="skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
+          </div>
+        </div>`;
+      });
+    }
     h+=`</div>`;
   });
   // OOS section
@@ -687,6 +717,27 @@ function shuffle(){
   if(S.meals.some(m=>m&&!m.nightOff)){save("lastWeek",S.meals.filter(m=>m&&!m.nightOff));}
   const newMeals=pickMeals();
   save("meals",newMeals);save("checked",{});
+}
+function toggleAisle(key){
+  save("collapsedAisles",{...S.collapsedAisles,[key]:!S.collapsedAisles[key]});
+}
+function moveAisleUp(key){
+  const order=getAisleOrder();
+  const i=order.indexOf(key);
+  if(i<=0)return;
+  const o=[...order];[o[i-1],o[i]]=[o[i],o[i-1]];
+  save("aisleOrder",o);
+}
+function moveAisleDown(key){
+  const order=getAisleOrder();
+  const i=order.indexOf(key);
+  if(i<0||i>=order.length-1)return;
+  const o=[...order];[o[i],o[i+1]]=[o[i+1],o[i]];
+  save("aisleOrder",o);
+}
+function getAisleOrder(){
+  if(S.aisleOrder&&S.aisleOrder.length) return S.aisleOrder;
+  return AISLES.map(a=>a.key);
 }
 function skipItem(aisleKey,name){
   const k=aisleKey+":"+name;
@@ -864,7 +915,9 @@ async function doScrape(url){
   else{st.className="scrapest ok";st.textContent=`✓ "${title.substring(0,46)}" — add ingredients below`;}
 }
 
-// ── BOOT ──────────────────────────────────────────────────────────
+
+
+// ── BOOT ──────────────────────────────────────────────────────────────────────
 go("plan");
 initDB();
 </script>
