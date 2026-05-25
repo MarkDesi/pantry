@@ -74,7 +74,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .rest span{font-size:13.5px;color:var(--text3);font-style:italic}
 /* NOTES */
 .notes-card{background:#fff;border-radius:14px;padding:12px 14px;margin-top:10px;box-shadow:0 1px 6px rgba(44,32,22,.06)}
-.notes-ta{width:100%;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text1);resize:none;background:transparent;min-height:56px;line-height:1.6}
+.notes-ta{width:100%;border:none;outline:none;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text1);resize:none;background:transparent;min-height:40px;height:40px;overflow:hidden;line-height:1.6;transition:height .15s}
 .notes-ta::placeholder{color:var(--warm3)}
 /* LAST WEEK */
 .lwcard{background:#fff;border-radius:14px;padding:13px 14px;box-shadow:0 1px 6px rgba(44,32,22,.06);margin-bottom:10px}
@@ -282,6 +282,9 @@ function applyKey(key,value){
   if(key==="staples")  S.staples=arr(value).length?arr(value):DSTAPLES;
   if(key==="notes")    S.notes=value||"";
   if(key==="oos")      S.oos=arr(value);
+  if(key==="extras")   S.extras=arr(value);
+  if(key==="skipped")  S.skipped=value||{};
+  if(key==="weekStart") S.weekStart=value||"";
   if(key==="stockLevels")S.stockLevels=value||{};
   if(key==="cookCount")S.cookCount=value||{};
 }
@@ -293,6 +296,7 @@ async function initDB(){
     const rows=await r.json();
     if(Array.isArray(rows)){rows.forEach(row=>{pollV[row.key]=row.value;applyKey(row.key,row.value);});syncUI("live");}
   }catch(e){syncUI("off");}
+  checkWeekReset();
   go(S.tab);
   setInterval(poll,3000);
 }
@@ -301,7 +305,7 @@ async function initDB(){
 const SRC={own:{label:"My Recipe",color:"#A8896C"},kic:{label:"KIC",color:"#C97B84"},rte:{label:"RecipeTin",color:"#7B9E87"},ontrac:{label:"OnTrac5",color:"#7B8CBE"},other:{label:"Other",color:"#9B8BB0"}};
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
 const SEASONS={all:{label:"Year-round",color:"#7B9E87"},summer:{label:"Summer",color:"#C97B84"},winter:{label:"Winter",color:"#4A6B8A"},spring:{label:"Spring",color:"#7B8CBE"},autumn:{label:"Autumn",color:"#A8896C"}};
-const AISLES=[{key:"fm",name:"Farmers Market",color:"#5C7A5E"},{key:"produce",name:"Fresh Produce",color:"#7B9E87"},{key:"deli",name:"Deli",color:"#9B8BB0"},{key:"meat",name:"Meat & Seafood",color:"#B85A5A"},{key:"bakery",name:"Bakery",color:"#A8896C"},{key:"dairy",name:"Dairy & Eggs",color:"#7B9E87"},{key:"pasta",name:"Pasta, Rice & Grains",color:"#7B8CBE"},{key:"pantry",name:"Sauces & Pantry",color:"#9B8070"},{key:"frozen",name:"Frozen",color:"#4A6B8A"},{key:"breakfast",name:"Breakfast & Cereal",color:"#C97B84"}];
+const AISLES=[{key:"fm",name:"Farmers Market",color:"#5C7A5E"},{key:"produce",name:"Fresh Produce",color:"#7B9E87"},{key:"deli",name:"Deli",color:"#9B8BB0"},{key:"meat",name:"Meat & Seafood",color:"#B85A5A"},{key:"bakery",name:"Bakery",color:"#A8896C"},{key:"dairy",name:"Dairy & Eggs",color:"#7B9E87"},{key:"pasta",name:"Pasta, Rice & Grains",color:"#7B8CBE"},{key:"pantry",name:"Sauces & Pantry",color:"#9B8070"},{key:"frozen",name:"Frozen",color:"#4A6B8A"},{key:"breakfast",name:"Breakfast & Cereal",color:"#C97B84"},{key:"household",name:"Household",color:"#7B8CBE"},{key:"pets",name:"Pets",color:"#A8896C"}];
 const AK=AISLES.map(a=>a.key);
 const ANMS=Object.fromEntries(AISLES.map(a=>[a.key,a.name]));
 
@@ -351,10 +355,10 @@ const SUGG=[
 var S={
   tab:"plan",recipes:DREC.map(r=>({...r})),meals:[],lastWeek:[],checked:{},locked:false,
   dismissed:[],staples:DSTAPLES.map(s=>({...s,items:s.items.map(i=>({...i}))})),
-  notes:"",oos:[],stockLevels:{},cookCount:{},
+  notes:"",oos:[],stockLevels:{},cookCount:{},extras:[],skipped:{},
   sync:"off",editId:null,editIngs:{},selSrc:"own",selSeason:"all",
   q:"",pickDay:null,scrapeTimer:null,scrapedIngs:{},
-  listFMOnly:false,
+  listFMOnly:false,weekStart:"",
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────
@@ -387,6 +391,8 @@ function guessAisle(n){
   if(/(pasta|spaghetti|fettuccine|penne|rigatoni|lasagne|rice|noodle|udon|ramen|risoni|orzo)/.test(l))return"pasta";
   if(/(frozen|raspberry|hashbrown|edamame)/.test(l))return"frozen";
   if(/(weetbix|weet-bix|cereal|granola|oat|porridge|peanut butter)/.test(l))return"breakfast";
+  if(/(toilet paper|paper towel|tissues|napkin|bin liner|glad wrap|alfoil|aluminium foil|cling wrap|zip lock|ziplock|sandwich bag|cleaning|detergent|washing|dishwash|soap|shampoo|conditioner|toothpaste|deodorant|razor|tampon|pad|nappy|baby|cotton)/.test(l))return"household";
+  if(/(dog|cat|pet|kibble|pedigree|whiskas|treat|collar|lead|litter)/.test(l))return"pets";
   return"pantry";
 }
 
@@ -416,7 +422,13 @@ function buildList(){
   });
   // Add OOS items
   S.oos.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],oos:true});});
-  return AISLES.map(a=>({...a,items:map[a.key]})).filter(a=>a.items.length>0);
+  // Add extras (one-off items like dog food, toilet paper etc)
+  S.extras.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],extra:true});});
+  // Mark skipped items (hidden this week but not permanently removed)
+  return AISLES.map(a=>({...a,items:map[a.key].filter(item=>{
+    const skipKey=a.key+":"+item.n;
+    return !S.skipped[skipKey];
+  })})).filter(a=>a.items.length>0);
 }
 
 // ── BALANCE CHECKER ───────────────────────────────────────────────
@@ -445,7 +457,9 @@ function go(tab){
   document.getElementById("ttl").innerHTML=TTLS[tab];
   document.querySelectorAll(".tb").forEach(b=>b.classList.toggle("on",b.dataset.tab===tab));
   const scr=document.getElementById("scr");
-  try{if(tab==="plan")scr.innerHTML=rPlan();else if(tab==="list")scr.innerHTML=rList();else if(tab==="recipes")scr.innerHTML=rRecipes();else scr.innerHTML=rPantry();}
+  try{if(tab==="plan")scr.innerHTML=rPlan();else if(tab==="list")scr.innerHTML=rList();else if(tab==="recipes")scr.innerHTML=rRecipes();else scr.innerHTML=rPantry();
+  if(tab==="plan"){const ta=document.getElementById("notes-ta");if(ta)autoResize(ta);}
+  }
   catch(e){scr.innerHTML=`<div style="padding:20px;background:#fff;border-radius:14px;margin-top:8px"><b style="color:#b85a5a">Error: ${e.message}</b><br><br><button onclick="location.reload()" style="padding:10px 18px;background:#2c2016;color:#f5f0e8;border:none;border-radius:11px;font-family:DM Sans,sans-serif;font-size:13px;cursor:pointer">Reload</button></div>`;}
   let fab=document.getElementById("fab");
   if(tab==="recipes"||tab==="pantry"){if(!fab){fab=document.createElement("button");fab.id="fab";fab.className="fab";fab.innerHTML="+";document.getElementById("app").appendChild(fab);}fab.style.display="";fab.onclick=tab==="recipes"?openAdd:openAddSection;}
@@ -458,6 +472,7 @@ function rPlan(){
   let h=`<div class="stats"><div class="sp"><div class="sp-n">${realMeals.length}</div><div class="sp-l">dinners</div></div><div class="sp"><div class="sp-n">${tot-fm}</div><div class="sp-l">woolies</div></div><div class="sp"><div class="sp-n">${fm}</div><div class="sp-l">mkt items</div></div></div>`;
   // Balance warnings
   checkBalance().forEach(w=>{h+=`<div class="warn ${w.type}"><span>⚠️</span><span>${esc(w.msg)}</span></div>`;});
+  h+=`<div style="font-family:'Fraunces',serif;font-size:13px;color:var(--text3);margin-bottom:10px;font-style:italic">w/c ${getWeekLabel()}</div>`;
   if(S.locked)h+=`<div class="lkbanner">🔒 Week locked — shuffle & edits off</div>`;
   // Check if any slot has a meal
   const anyMeals=S.meals.some(m=>m&&!m.nightOff);
@@ -516,7 +531,7 @@ function rPlan(){
   h+=`<div class="rest"><span class="mday" style="color:var(--text3)">Sun</span><span>Leftovers / rest</span></div></div>`;
   h+=`<div class="wact"><button class="btn primary" onclick="shuffle()" ${S.locked?"disabled":""}><span class="spin" id="sp">⟳</span> ${!S.meals.length?"Fill the week":"Shuffle week"}</button><button class="btn sec" onclick="toggleLock()">${S.locked?"🔓":"🔒"}</button></div>`;
   // Weekly notes
-  h+=`<div class="notes-card"><div style="font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">📝 Weekly notes</div><textarea class="notes-ta" placeholder="e.g. Maddi away Wed, Mark's birthday Fri…" onchange="save('notes',this.value)" oninput="S.notes=this.value">${esc(S.notes)}</textarea></div>`;
+  h+=`<div class="notes-card"><div style="font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">📝 Weekly notes</div><textarea class="notes-ta" id="notes-ta" placeholder="e.g. Maddi away Wed, Mark's birthday Fri…" onchange="save('notes',this.value)" oninput="S.notes=this.value;autoResize(this)">${esc(S.notes)}</textarea></div>`;
   if(S.lastWeek.length){h+=`<div class="slbl">Last week</div><div class="lwcard">`;S.lastWeek.forEach((m,i)=>{const s=SRC[m.src]||SRC.other;h+=`<div class="lwrow"><span class="lwday">${DAYS[i]||"—"}</span><span class="lwnm">${esc(m.name)}</span><span class="stag" style="background:${s.color}22;color:${s.color};font-size:9px;padding:2px 6px">${s.label}</span></div>`;});h+=`</div>`;}
   return h;
 }
@@ -531,6 +546,20 @@ function rList(){
   </div>`;
   if(!S.meals.length)h+=`<div class="card" style="text-align:center;padding:18px 14px"><div style="font-size:26px;margin-bottom:8px">📅</div><div style="font-size:13px;font-weight:500;margin-bottom:4px">No meals planned</div><div style="font-size:12px;color:var(--text3)">Go to Plan → Shuffle first</div></div>`;
   else h+=`<div class="card" style="display:flex;align-items:center;gap:10px;padding:11px 14px"><span style="font-size:18px">✨</span><div><div style="font-size:12px;font-weight:500">${S.meals.length} meal${S.meals.length>1?"s":""} · quantities combined</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Ticks sync live · 3s refresh</div></div></div>`;
+  // Show skipped items banner if any
+  // Week date label
+  h+=`<div style="font-family:'Fraunces',serif;font-size:13px;color:var(--text3);margin-bottom:12px;font-style:italic">w/c ${getWeekLabel()}</div>`;
+  const skippedCount=Object.keys(S.skipped).length;
+  if(skippedCount>0){
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;background:#FFF4E0;border-radius:12px;padding:9px 14px;margin-bottom:10px;font-size:12px;color:var(--orange)">
+      <span>${skippedCount} item${skippedCount>1?"s":""} skipped this week</span>
+      <button onclick="save('skipped',{})" style="background:none;border:none;font-size:12px;color:var(--orange);cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500">Restore all</button>
+    </div>`;
+  }
+  h+=`<div style="display:flex;gap:8px;margin-bottom:12px">
+    <button onclick="promptOOS()" style="flex:1;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer">⚠️ Out of stock</button>
+    <button onclick="promptExtra()" style="flex:1;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer">＋ Extra item</button>
+  </div>`;
   h+=`<div class="pmeta"><span class="ptxt">${done} of ${tot} items</span>${done?`<button class="rbtn" onclick="resetChecked()">Reset</button>`:""}</div><div class="prog"><div class="progf" style="width:${pct}%"></div></div>`;
   displayList.forEach((aisle,ai)=>{
     if(!aisle.items.length)return;
@@ -548,7 +577,10 @@ function rList(){
           ${item.q?`<div class="sqty">${esc(item.q)}</div>`:""}
           ${!dn&&badges?`<div class="sbadges">${badges}</div>`:""}
         </div>
-        ${!dn?`<button class="stock-btn ${slCls}" onclick="cycleStock(event,'${esc(item.n)}')">${slLabel}</button>`:""}
+        <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+          ${!dn?`<button class="stock-btn ${slCls}" onclick="cycleStock(event,'${esc(item.n)}')">${slLabel}</button>`:""}
+          ${!dn?`<button onclick="skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
+        </div>
       </div>`;
     });
     h+=`</div>`;
@@ -559,7 +591,12 @@ function rList(){
     S.oos.forEach((item,i)=>{h+=`<div class="oos-row"><span style="flex:1;font-size:13px">${esc(item.n)}</span><span style="font-size:11px;color:var(--text3)">${esc(item.q||"")}</span><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px" onclick="removeOOS(${i})">✕</button></div>`;});
     h+=`</div>`;
   }
-  h+=`<div style="margin-top:6px"><button onclick="promptOOS()" style="width:100%;padding:12px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--text2);cursor:pointer">+ Add out of stock item</button></div>`;
+
+  if(S.extras.length){
+    h+=`<div class="slbl" style="margin-top:14px">Extra items this week</div><div class="aislecard">`;
+    S.extras.forEach((item,i)=>{h+=`<div class="oos-row"><span style="flex:1;font-size:13px">${esc(item.n)}</span><span style="font-size:11px;color:var(--text3)">${esc(item.q||"")}</span><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px" onclick="removeExtra(${i})">✕</button></div>`;});
+    h+=`</div>`;
+  }
   return h;
 }
 
@@ -651,6 +688,50 @@ function shuffle(){
   const newMeals=pickMeals();
   save("meals",newMeals);save("checked",{});
 }
+function skipItem(aisleKey,name){
+  const k=aisleKey+":"+name;
+  save("skipped",{...S.skipped,[k]:true});
+}
+// ── WEEK DATE & AUTO-RESET ───────────────────────────────────────
+function getAESTDate(){
+  // AEST is UTC+10, AEDT is UTC+11 — use a fixed +10 for simplicity
+  const now=new Date();
+  const aest=new Date(now.getTime()+10*60*60*1000);
+  return aest;
+}
+function getWeekStartStr(){
+  // Week starts Monday
+  const d=getAESTDate();
+  const day=d.getUTCDay(); // 0=Sun,1=Mon...6=Sat
+  const diff=(day===0)?6:(day-1); // days since last Monday
+  const mon=new Date(d);
+  mon.setUTCDate(d.getUTCDate()-diff);
+  return mon.toISOString().slice(0,10);
+}
+function getWeekLabel(){
+  const d=getAESTDate();
+  const day=d.getUTCDay();
+  const diff=(day===0)?6:(day-1);
+  const mon=new Date(d);
+  mon.setUTCDate(d.getUTCDate()-diff);
+  const sun=new Date(mon);
+  sun.setUTCDate(mon.getUTCDate()+6);
+  const fmt=dt=>dt.toLocaleDateString("en-AU",{day:"numeric",month:"short",timeZone:"UTC"});
+  return fmt(mon)+" — "+fmt(sun);
+}
+function checkWeekReset(){
+  const currentWeek=getWeekStartStr();
+  if(S.weekStart && S.weekStart!==currentWeek){
+    // New week — reset skipped items and extras
+    console.log("New week detected, resetting skipped & extras");
+    save("skipped",{});
+    save("extras",[]);
+  }
+  if(S.weekStart!==currentWeek){
+    save("weekStart",currentWeek);
+  }
+}
+function autoResize(el){el.style.height="auto";el.style.height=(el.scrollHeight)+"px";}
 function toggleLock(){
   const locking=!S.locked;
   if(locking){
@@ -677,6 +758,13 @@ function updQ(v){S.q=v;go("recipes");const el=document.getElementById("rsrch");i
 function addSugg(id){const s=SUGG.find(x=>x.id===id);if(!s)return;save("recipes",[...S.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,season:s.season||"all",batch:false,notes:"",rating:0,ingredients:s.ingredients||{}}]);save("dismissed",[...S.dismissed,id]);}
 function disSugg(id){save("dismissed",[...S.dismissed,id]);}
 function cycleStock(e,name){e.stopPropagation();const cur=S.stockLevels[name]||"low";const next=cur==="low"?"half":cur==="half"?"full":"low";save("stockLevels",{...S.stockLevels,[name]:next});}
+function promptExtra(){
+  const n=prompt("Item name (e.g. Dog food, Toilet paper):");
+  if(!n)return;
+  const q=prompt("Quantity (optional):","");
+  save("extras",[...S.extras,{n:n.trim(),q:q||""}]);
+}
+function removeExtra(i){const o=[...S.extras];o.splice(i,1);save("extras",o);}
 function promptOOS(){const n=prompt("Item name:");if(!n)return;const q=prompt("Quantity (optional):","");save("oos",[...S.oos,{n,q:q||""}]);}
 function removeOOS(i){const o=[...S.oos];o.splice(i,1);save("oos",o);}
 function updStaple(si,ii,f,v){const u=JSON.parse(JSON.stringify(S.staples));u[si].items[ii][f]=v;save("staples",u);}
