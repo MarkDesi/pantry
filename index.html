@@ -267,7 +267,13 @@ var pollV={};
 async function poll(){try{const r=await fetch(SB_URL+"/rest/v1/pantry?select=key,value",{headers:SBH});const rows=await r.json();if(!Array.isArray(rows))return;let ch=false;rows.forEach(row=>{const p=JSON.stringify(pollV[row.key]);const c=JSON.stringify(row.value);if(p!==c){pollV[row.key]=row.value;applyKey(row.key,row.value);ch=true;}});syncUI("live");if(ch)go(S.tab);}catch(e){syncUI("off");}}
 function applyKey(key,value){
   const arr=v=>!v?[]:(Array.isArray(v)?v:Object.values(v));
-  if(key==="meals")    S.meals=arr(value);
+  if(key==="meals"){
+    const raw=arr(value);
+    // Always maintain exactly 6 slots — pad with nulls if needed
+    const slots=Array(6).fill(null);
+    raw.forEach((m,i)=>{if(i<6)slots[i]=m;});
+    S.meals=slots;
+  }
   if(key==="recipes")  S.recipes=arr(value).length?arr(value):DREC;
   if(key==="checked")  S.checked=value||{};
   if(key==="locked")   S.locked=!!value;
@@ -392,6 +398,7 @@ function buildList(){
   const note=sl==="full"?"✓ stocked":sl==="half"?"~half left":null;map[k].push({n:item.n,q,staple:true,recipes:[],stockNote:note,stockLevel:sl});});});
   // Recipe ingredients
   S.meals.forEach(meal=>{
+    if(!meal||meal.nightOff)return;
     const rec=S.recipes.find(r=>r.id===meal.id);if(!rec||!rec.ingredients)return;
     const col=(SRC[rec.src]||SRC.other).color;
     const batchMult=rec.batch?2:1;
@@ -415,18 +422,19 @@ function buildList(){
 // ── BALANCE CHECKER ───────────────────────────────────────────────
 function checkBalance(){
   const warns=[];
-  if(!S.meals.length)return warns;
+  const realM=S.meals.filter(m=>m&&!m.nightOff);
+  if(!realM.length)return warns;
   // Protein balance
   const proteins={chicken:0,beef:0,pork:0,fish:0,veg:0};
-  S.meals.forEach(m=>{const t=(m.tag||"").toLowerCase();if(t.includes("chicken"))proteins.chicken++;else if(t.includes("beef")||t.includes("lamb"))proteins.beef++;else if(t.includes("pork"))proteins.pork++;else if(t.includes("fish")||t.includes("seafood")||t.includes("salmon"))proteins.fish++;else proteins.veg++;});
+  realM.forEach(m=>{const t=(m.tag||"").toLowerCase();if(t.includes("chicken"))proteins.chicken++;else if(t.includes("beef")||t.includes("lamb"))proteins.beef++;else if(t.includes("pork"))proteins.pork++;else if(t.includes("fish")||t.includes("seafood")||t.includes("salmon"))proteins.fish++;else proteins.veg++;});
   Object.entries(proteins).forEach(([p,n])=>{if(n>=3)warns.push({type:"orange",msg:`${n} ${p} dishes this week — maybe swap one for variety?`});});
   // Repeat from last week
   const lastIds=new Set(S.lastWeek.map(m=>m.id));
-  const repeats=S.meals.filter(m=>lastIds.has(m.id));
+  const repeats=realM.filter(m=>lastIds.has(m.id));
   if(repeats.length)warns.push({type:"orange",msg:`${repeats.map(r=>r.name).join(", ")} also appeared last week`});
   // Season
   const season=curSeason();
-  S.meals.forEach(m=>{const rec=S.recipes.find(r=>r.id===m.id);if(rec&&rec.season&&rec.season!=="all"&&rec.season!==season)warns.push({type:"blue",msg:`${m.name} is tagged as ${rec.season} — might be better in season`});});
+  realM.forEach(m=>{const rec=S.recipes.find(r=>r.id===m.id);if(rec&&rec.season&&rec.season!=="all"&&rec.season!==season)warns.push({type:"blue",msg:`${m.name} is tagged as ${rec.season} — might be better in season`});});
   return warns;
 }
 
@@ -446,19 +454,25 @@ function go(tab){
 
 function rPlan(){
   const list=buildList();const tot=list.reduce((a,s)=>a+s.items.length,0);const fm=(list.find(a=>a.key==="fm")||{items:[]}).items.length;
-  let h=`<div class="stats"><div class="sp"><div class="sp-n">${S.meals.length}</div><div class="sp-l">dinners</div></div><div class="sp"><div class="sp-n">${tot-fm}</div><div class="sp-l">woolies</div></div><div class="sp"><div class="sp-n">${fm}</div><div class="sp-l">mkt items</div></div></div>`;
+  const realMeals=S.meals.filter(m=>m&&!m.nightOff);
+  let h=`<div class="stats"><div class="sp"><div class="sp-n">${realMeals.length}</div><div class="sp-l">dinners</div></div><div class="sp"><div class="sp-n">${tot-fm}</div><div class="sp-l">woolies</div></div><div class="sp"><div class="sp-n">${fm}</div><div class="sp-l">mkt items</div></div></div>`;
   // Balance warnings
   checkBalance().forEach(w=>{h+=`<div class="warn ${w.type}"><span>⚠️</span><span>${esc(w.msg)}</span></div>`;});
   if(S.locked)h+=`<div class="lkbanner">🔒 Week locked — shuffle & edits off</div>`;
+  // Check if any slot has a meal
+  const anyMeals=S.meals.some(m=>m&&!m.nightOff);
   h+=`<div class="mlist">`;
-  if(!S.meals.length){
+  if(!anyMeals){
     h+=`<div style="padding:22px 14px;text-align:center"><div style="font-size:28px;margin-bottom:8px">🍽</div><div style="font-size:14px;font-weight:500;margin-bottom:5px">No meals yet</div><div style="font-size:12px;color:var(--text3)">Tap Shuffle or add days below</div></div>`;
-    for(let i=0;i<6;i++)h+=`<div class="addrow" onclick="openPick(${i})"><div class="addc">+</div><span style="font-size:13px;color:var(--text3)">${DAYS[i]} — tap to add</span></div>`;
-  }else{
-    S.meals.forEach((m,i)=>{
+  }
+  // Always render all 6 day slots
+  const lastIds=new Set(S.lastWeek.map(x=>x.id));
+  for(let i=0;i<6;i++){
+    const m=S.meals[i];
+    if(m&&!m.nightOff){
+      // Slot has a recipe
       const s=SRC[m.src]||SRC.other;
       const rec=S.recipes.find(r=>r.id===m.id)||{};
-      const lastIds=new Set(S.lastWeek.map(x=>x.id));
       const isRepeat=lastIds.has(m.id);
       const seasonLabel=rec.season&&rec.season!=="all"?SEASONS[rec.season]:null;
       const cookN=S.cookCount[m.id]||0;
@@ -475,10 +489,29 @@ function rPlan(){
             ${cookN>0?`<span style="font-size:9px;color:var(--text3)">cooked ${cookN}×</span>`:""}
           </div>
         </div>
-        ${!S.locked?`<button class="xbtn" onclick="removeMeal(${i})">✕</button>`:'<span style="width:22px"></span>'}
+        ${!S.locked?`<div style="display:flex;gap:4px">
+          <button class="xbtn" title="Night off" onclick="toggleNightOff(${i})" style="font-size:12px;color:var(--text3)">🌙</button>
+          <button class="xbtn" onclick="removeMeal(${i})">✕</button>
+        </div>`:'<span style="width:22px"></span>'}
       </div>`;
-    });
-    for(let i=S.meals.length;i<6;i++)if(!S.locked)h+=`<div class="addrow" onclick="openPick(${i})"><div class="addc">+</div><span style="font-size:13px;color:var(--text3)">${DAYS[i]} — tap to add</span></div>`;
+    } else if(m&&m.nightOff){
+      // Slot is marked as night off
+      h+=`<div class="mrow" data-i="${i}" ondragover="dov(event,${i})" ondrop="ddr(event,${i})">
+        <span class="dh lk">⠿</span>
+        <span class="mday">${DAYS[i]}</span>
+        <div class="mnm-wrap">
+          <div class="mnm" style="color:var(--text3);font-style:italic">🌙 Night off</div>
+        </div>
+        ${!S.locked?`<div style="display:flex;gap:4px">
+          <button class="xbtn" title="Add meal" onclick="openPick(${i})" style="font-size:13px;color:var(--blue)">+</button>
+          <button class="xbtn" onclick="toggleNightOff(${i})">✕</button>
+        </div>`:""}
+      </div>`;
+    } else {
+      // Slot is empty — show add row
+      if(!S.locked)h+=`<div class="addrow" ondragover="dov(event,${i})" ondrop="ddr(event,${i})" onclick="openPick(${i})"><div class="addc">+</div><span style="font-size:13px;color:var(--text3)">${DAYS[i]} — tap to add</span></div>`;
+      else h+=`<div class="mrow"><span class="dh lk">⠿</span><span class="mday">${DAYS[i]}</span><span style="font-size:13px;color:var(--text3);font-style:italic">—</span></div>`;
+    }
   }
   h+=`<div class="rest"><span class="mday" style="color:var(--text3)">Sun</span><span>Leftovers / rest</span></div></div>`;
   h+=`<div class="wact"><button class="btn primary" onclick="shuffle()" ${S.locked?"disabled":""}><span class="spin" id="sp">⟳</span> ${!S.meals.length?"Fill the week":"Shuffle week"}</button><button class="btn sec" onclick="toggleLock()">${S.locked?"🔓":"🔒"}</button></div>`;
@@ -605,24 +638,36 @@ function pickMeals(){
   const season=curSeason();
   const lastIds=new Set(S.lastWeek.map(m=>m.id));
   let eligible=S.recipes.filter(r=>!r.special&&r.active);
-  // Prefer current season & non-repeat, but don't exclude entirely
   const preferred=eligible.filter(r=>(r.season==="all"||r.season===season)&&!lastIds.has(r.id));
   const pool=preferred.length>=6?preferred:eligible;
-  return[...pool].sort(()=>Math.random()-.5).slice(0,6);
+  const picked=[...pool].sort(()=>Math.random()-.5).slice(0,6);
+  // Return exactly 6 slots
+  return Array(6).fill(null).map((_,i)=>picked[i]||null);
 }
 function shuffle(){
   if(S.locked)return;
   const sp=document.getElementById("sp");if(sp){sp.classList.add("go");setTimeout(()=>sp.classList.remove("go"),400);}
-  if(S.meals.length){save("lastWeek",S.meals);}
+  if(S.meals.some(m=>m&&!m.nightOff)){save("lastWeek",S.meals.filter(m=>m&&!m.nightOff));}
   const newMeals=pickMeals();
-  // Increment cook count for each meal being replaced
-  const newCount={...S.cookCount};
-  newMeals.forEach(m=>{newCount[m.id]=(newCount[m.id]||0)+1;});
-  save("cookCount",newCount);
   save("meals",newMeals);save("checked",{});
 }
-function toggleLock(){save("locked",!S.locked);}
-function removeMeal(i){if(S.locked)return;const m=[...S.meals];m.splice(i,1);save("meals",m);save("checked",{});}
+function toggleLock(){
+  const locking=!S.locked;
+  if(locking){
+    // Count recipes as cooked when week is locked in
+    const newCount={...S.cookCount};
+    S.meals.forEach(m=>{if(m&&!m.nightOff)newCount[m.id]=(newCount[m.id]||0)+1;});
+    save("cookCount",newCount);
+  }
+  save("locked",locking);
+}
+function toggleNightOff(i){
+  if(S.locked)return;
+  const m=[...S.meals];
+  m[i]=m[i]&&m[i].nightOff?null:{nightOff:true};
+  save("meals",m);
+}
+function removeMeal(i){if(S.locked)return;const m=[...S.meals];m[i]=null;save("meals",m);save("checked",{});}
 function chk(key){save("checked",{...S.checked,[key]:!S.checked[key]});}
 function resetChecked(){save("checked",{});}
 function togRec(id){save("recipes",S.recipes.map(r=>r.id===id?{...r,active:!r.active}:r));}
@@ -644,17 +689,17 @@ function openAddSection(){const nm=prompt("New section name:");if(nm)save("stapl
 var dSrc=null,dOvr=null;
 function ds(e,i){if(S.locked)return;dSrc=i;e.dataTransfer.effectAllowed="move";setTimeout(()=>{const el=document.querySelector(`[data-i="${i}"]`);if(el)el.style.opacity=".35";},0);}
 function dov(e,i){if(S.locked)return;e.preventDefault();if(dOvr!==i){document.querySelectorAll(".mrow").forEach(el=>el.classList.remove("drag-over"));const el=document.querySelector(`[data-i="${i}"]`);if(el)el.classList.add("drag-over");dOvr=i;}}
-function ddr(e,i){e.preventDefault();if(dSrc===null||dSrc===i)return;const m=[...S.meals];const[mv]=m.splice(dSrc,1);m.splice(i,0,mv);save("meals",m);dSrc=null;dOvr=null;}
+function ddr(e,i){e.preventDefault();if(dSrc===null||dSrc===i)return;const m=[...S.meals];const tmp=m[dSrc];m[dSrc]=m[i];m[i]=tmp;save("meals",m);dSrc=null;dOvr=null;}
 function de(){document.querySelectorAll(".mrow").forEach(el=>{el.classList.remove("drag-over");el.style.opacity="";});dSrc=null;dOvr=null;}
 var tS=null,tEl=null,tCl=null,tY=0;
 document.addEventListener("touchstart",e=>{if(S.locked)return;const h=e.target.closest(".dh");if(!h||h.classList.contains("lk"))return;const row=h.closest(".mrow");if(!row)return;tS=parseInt(row.dataset.i);tEl=row;tY=e.touches[0].clientY;tCl=row.cloneNode(true);const r=row.getBoundingClientRect();tCl.style.cssText=`position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;opacity:.85;z-index:999;pointer-events:none;border-radius:12px;background:#fff;box-shadow:0 6px 24px rgba(44,32,22,.2)`;document.body.appendChild(tCl);row.style.opacity=".3";e.preventDefault();},{passive:false});
 document.addEventListener("touchmove",e=>{if(tS===null||!tCl)return;const dy=e.touches[0].clientY-tY;tCl.style.top=(tEl.getBoundingClientRect().top+dy)+"px";document.querySelectorAll(".mrow").forEach(el=>el.classList.remove("drag-over"));const u=document.elementFromPoint(e.touches[0].clientX,e.touches[0].clientY);const tr=u?u.closest(".mrow"):null;if(tr&&tr!==tEl)tr.classList.add("drag-over");e.preventDefault();},{passive:false});
-document.addEventListener("touchend",e=>{if(tS===null)return;if(tCl){tCl.remove();tCl=null;}if(tEl)tEl.style.opacity="";const u=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);const tr=u?u.closest(".mrow"):null;document.querySelectorAll(".mrow").forEach(el=>el.classList.remove("drag-over"));if(tr&&tr!==tEl){const ti=parseInt(tr.dataset.i);if(!isNaN(ti)&&ti!==tS){const m=[...S.meals];const[mv]=m.splice(tS,1);m.splice(ti,0,mv);save("meals",m);}}tS=null;tEl=null;});
+document.addEventListener("touchend",e=>{if(tS===null)return;if(tCl){tCl.remove();tCl=null;}if(tEl)tEl.style.opacity="";const u=document.elementFromPoint(e.changedTouches[0].clientX,e.changedTouches[0].clientY);const tr=u?u.closest(".mrow"):null;document.querySelectorAll(".mrow").forEach(el=>el.classList.remove("drag-over"));if(tr&&tr!==tEl){const ti=parseInt(tr.dataset.i);if(!isNaN(ti)&&ti!==tS){const m=[...S.meals];const tmp=m[tS];m[tS]=m[ti];m[ti]=tmp;save("meals",m);}}tS=null;tEl=null;});
 
 // ── PICK MEAL MODAL ───────────────────────────────────────────────
 function openPick(i){if(S.locked)return;S.pickDay=i;document.getElementById("pick-ttl").innerHTML=`Add meal for <em>${DAYS[i]}</em>`;document.getElementById("psrch").value="";rpick();document.getElementById("m-pick").style.display="flex";setTimeout(()=>document.getElementById("psrch").focus(),300);}
-function rpick(){const q=(document.getElementById("psrch")||{}).value||"";const inW=new Set(S.meals.map(m=>m.id));const list=S.recipes.filter(r=>{if(r.special||inW.has(r.id))return false;if(!q)return true;return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());});const el=document.getElementById("plist");if(!el)return;if(!list.length){el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">No matching recipes</div>`;return;}el.innerHTML=list.map(r=>{const s=SRC[r.src]||SRC.other;const cookN=S.cookCount[r.id]||0;return`<div class="pickrow" onclick="pickMeal(${r.id})"><div class="pickinfo"><div class="picknm">${esc(r.name)}</div><div class="picktag" style="color:${s.color}">${s.label} · ${esc(r.tag)}${cookN>0?` · ${cookN}×`:""}</div></div><button class="pickadd">Add</button></div>`;}).join("");}
-function pickMeal(id){const rec=S.recipes.find(r=>r.id===id);if(!rec||S.pickDay===null)return;const m=[...S.meals];if(m.length>S.pickDay){m.splice(S.pickDay,0,rec);if(m.length>6)m.splice(6);}else m.push(rec);save("meals",m);save("checked",{});closeM("m-pick");}
+function rpick(){const q=(document.getElementById("psrch")||{}).value||"";const inW=new Set(S.meals.filter(m=>m&&!m.nightOff).map(m=>m.id));const list=S.recipes.filter(r=>{if(r.special||inW.has(r.id))return false;if(!q)return true;return r.name.toLowerCase().includes(q.toLowerCase())||r.tag.toLowerCase().includes(q.toLowerCase());});const el=document.getElementById("plist");if(!el)return;if(!list.length){el.innerHTML=`<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">No matching recipes</div>`;return;}el.innerHTML=list.map(r=>{const s=SRC[r.src]||SRC.other;const cookN=S.cookCount[r.id]||0;return`<div class="pickrow" onclick="pickMeal(${r.id})"><div class="pickinfo"><div class="picknm">${esc(r.name)}</div><div class="picktag" style="color:${s.color}">${s.label} · ${esc(r.tag)}${cookN>0?` · ${cookN}×`:""}</div></div><button class="pickadd">Add</button></div>`;}).join("");}
+function pickMeal(id){const rec=S.recipes.find(r=>r.id===id);if(!rec||S.pickDay===null)return;const m=[...S.meals];m[S.pickDay]=rec;save("meals",m);save("checked",{});closeM("m-pick");}
 
 // ── ADD / EDIT RECIPE MODAL ───────────────────────────────────────
 function openAdd(){
