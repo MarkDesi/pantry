@@ -108,10 +108,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .sbadges{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
 .sbadge{font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap}
 .fmtag{font-size:10px;background:#E3EDE3;color:var(--green);padding:2px 6px;border-radius:10px;margin-left:4px}
-.stock-btn{font-size:10px;padding:3px 8px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;margin-left:auto;flex-shrink:0;transition:all .15s}
-.stock-full{background:#E8F2E8;color:var(--green)}
-.stock-half{background:#FFF4E0;color:var(--orange)}
-.stock-low{background:#FDE8E8;color:var(--red)}
+
 .oos-row{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--warm1);cursor:pointer}
 .oos-row:last-child{border-bottom:none}
 /* RECIPES */
@@ -152,7 +149,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .ptqty:focus{border-color:var(--brown)}
 .ptx{width:26px;height:26px;border-radius:50%;border:none;background:var(--warm1);color:var(--text3);font-size:13px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .ptadd{padding:7px 13px;border-radius:20px;border:1.5px dashed var(--warm2);background:transparent;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--text3);cursor:pointer;margin-top:6px}
-.stock-cycle{font-size:11px;padding:4px 9px;border-radius:10px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;flex-shrink:0;transition:all .15s}
+
 /* FAB */
 .fab{position:fixed;bottom:calc(var(--sb) + 22px);right:calc(50% - 195px);width:52px;height:52px;background:var(--dark);color:var(--cream);border:none;border-radius:50%;font-size:26px;cursor:pointer;box-shadow:0 4px 18px rgba(44,32,22,.25);display:flex;align-items:center;justify-content:center;z-index:40;transition:transform .15s}
 .fab:active{transform:scale(.9)}@media(max-width:430px){.fab{right:18px}}
@@ -313,7 +310,7 @@ function applyKey(key,value){
   if(key==="weekStart")     S.weekStart=value||"";
   if(key==="collapsedAisles") S.collapsedAisles=value||{};
   if(key==="aisleOrder")      S.aisleOrder=arr(value);
-  if(key==="stockLevels")S.stockLevels=value||{};
+
   if(key==="cookCount")S.cookCount=value||{};
 }
 function save(key,value){applyKey(key,value);go(S.tab);syncUI("sync");dbSet(key,value);}
@@ -383,7 +380,7 @@ const SUGG=[
 var S={
   tab:"plan",recipes:DREC.map(r=>({...r})),meals:[],lastWeek:[],checked:{},locked:false,
   dismissed:[],staples:DSTAPLES.map(s=>({...s,items:s.items.map(i=>({...i}))})),
-  notes:"",oos:[],stockLevels:{},cookCount:{},extras:[],skipped:{},
+  notes:"",oos:[],cookCount:{},extras:[],skipped:{},
   sync:"off",editId:null,editIngs:{},selSrc:"own",selSeason:"all",
   q:"",pickDay:null,scrapeTimer:null,scrapedIngs:{},
   listFMOnly:false,weekStart:"",collapsedAisles:{},aisleOrder:[],
@@ -428,8 +425,7 @@ function guessAisle(n){
 function buildList(){
   const map={};AK.forEach(k=>{map[k]=[];});
   // Staples — apply stock level multiplier
-  S.staples.forEach(sec=>{sec.items.forEach(item=>{const k=guessAisle(item.n);if(!map[k])return;const sl=S.stockLevels[item.n]||"low";let q=item.q||"";// If full, skip. If half, halve qty conceptually (show note)
-  const note=sl==="full"?"✓ stocked":sl==="half"?"~half left":null;map[k].push({n:item.n,q,staple:true,recipes:[],stockNote:note,stockLevel:sl});});});
+  S.staples.forEach(sec=>{sec.items.forEach(item=>{const k=guessAisle(item.n);if(!map[k])return;map[k].push({n:item.n,q:item.q||"",staple:true,recipes:[]});});});
   // Recipe ingredients
   S.meals.forEach(meal=>{
     if(!meal||meal.nightOff)return;
@@ -620,9 +616,7 @@ function rList(){
     if(!isCollapsed){
       aisle.items.forEach((item,ii)=>{
         const key=aisle.key+"-"+ii;const dn=S.checked[key];
-        const sl=S.stockLevels[item.n]||"low";
-        const slLabel=sl==="full"?"✓ Full":sl==="half"?"½ Half":"— Low";
-        const slCls=sl==="full"?"stock-full":sl==="half"?"stock-half":"stock-low";
+
         let badges="";if(item.recipes&&item.recipes.length)item.recipes.forEach(r=>{badges+=`<span class="sbadge" style="background:${r.color}15;color:${r.color};border:1px solid ${r.color}30">${esc(r.name)}${r.batch?" 📦":""}</span>`;});
         h+=`<div class="srow" onclick="chk('${key}')">
           <div class="chk${dn?" done":""}">${dn?"✓":""}</div>
@@ -632,8 +626,7 @@ function rList(){
             ${!dn&&badges?`<div class="sbadges">${badges}</div>`:""}
           </div>
           <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
-            ${!dn?`<button class="stock-btn ${slCls}" onclick="event.stopPropagation();cycleStock(event,'${esc(item.n)}')">${slLabel}</button>`:""}
-            ${!dn?`<button onclick="event.stopPropagation();skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
+              ${!dn?`<button onclick="event.stopPropagation();skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
           </div>
         </div>`;
       });
@@ -705,10 +698,8 @@ function rPantry(){
     h+=`<div style="display:flex;align-items:center;justify-content:space-between"><div class="slbl">${esc(sec.section)}</div><button style="font-size:10px;background:none;border:none;color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;margin-bottom:8px" onclick="renSec(${si})">rename</button></div>`;
     h+=`<div class="card" style="padding:10px 14px">`;
     sec.items.forEach((item,ii)=>{
-      const sl=S.stockLevels[item.n]||"low";
-      const slLabel=sl==="full"?"✓":sl==="half"?"½":"—";
-      const slCls=sl==="full"?"stock-full":sl==="half"?"stock-half":"stock-low";
-      h+=`<div class="ptrow"><input class="ptin" value="${esc(item.n)}" placeholder="Item" onchange="updStaple(${si},${ii},'n',this.value)"><input class="ptqty" value="${esc(item.q||"")}" placeholder="Qty" onchange="updStaple(${si},${ii},'q',this.value)"><button class="stock-cycle ${slCls}" onclick="cycleStock(event,'${esc(item.n)}')" title="Stock level: ${sl}">${slLabel}</button><button class="ptx" onclick="rmStaple(${si},${ii})">✕</button></div>`;
+
+      h+=`<div class="ptrow"><input class="ptin" value="${esc(item.n)}" placeholder="Item" onchange="updStaple(${si},${ii},'n',this.value)"><input class="ptqty" value="${esc(item.q||"")}" placeholder="Qty" onchange="updStaple(${si},${ii},'q',this.value)"><button class="ptx" onclick="rmStaple(${si},${ii})">✕</button></div>`;
     });
     h+=`<button class="ptadd" onclick="addStaple(${si})">+ Add item</button></div>`;
   });
@@ -860,7 +851,7 @@ function delRec(id){save("recipes",S.recipes.filter(r=>r.id!==id));save("meals",
 function updQ(v){S.q=v;go("recipes");const el=document.getElementById("rsrch");if(el){el.focus();el.setSelectionRange(v.length,v.length);}}
 function addSugg(id){const s=SUGG.find(x=>x.id===id);if(!s)return;save("recipes",[...S.recipes,{id:Date.now(),name:s.name,tag:s.tag,src:s.src,url:s.url,special:false,active:true,season:s.season||"all",batch:false,notes:"",rating:0,ingredients:s.ingredients||{}}]);save("dismissed",[...S.dismissed,id]);}
 function disSugg(id){save("dismissed",[...S.dismissed,id]);}
-function cycleStock(e,name){e.stopPropagation();const cur=S.stockLevels[name]||"low";const next=cur==="low"?"half":cur==="half"?"full":"low";save("stockLevels",{...S.stockLevels,[name]:next});}
+
 function promptExtra(){openExtra();}
 function openExtra(){
   document.getElementById("ex-name").value="";
