@@ -437,8 +437,8 @@ function buildList(){
         const nm=typeof ing==="string"?ing:(ing.n||"");let qty=typeof ing==="string"?"":(ing.q||"");if(!nm)return;
         // Double qty for batch cook recipes
         if(batchMult===2&&qty){const parsed=qty.match(/^([\d\.]+)(.*)/);if(parsed){const doubled=parseFloat(parsed[1])*2;qty=doubled+parsed[2];}}
-        const nk=nm.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[\s,]+/).slice(0,3).join(" ");
-        const ex=map[ak].find(i=>{const ek=i.n.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[\s,]+/).slice(0,3).join(" ");return ek===nk||ek.includes(nk)||nk.includes(ek);});
+        const nk=normName(nm).split(/\s+/).slice(0,3).join(" ");
+        const ex=map[ak].find(i=>{const ek=normName(i.n).split(/\s+/).slice(0,3).join(" ");return ek===nk||ek.includes(nk)||nk.includes(ek);});
         if(ex){if(!ex.recipes)ex.recipes=[];if(!ex.recipes.find(r=>r.id===meal.id))ex.recipes.push({id:meal.id,name:meal.name,color:col,batch:rec.batch});if(qty&&ex.q&&ex.q!==qty&&!ex.q.includes(qty))ex.q=mergeQty(ex.q,qty);else if(qty&&!ex.q)ex.q=qty;}
         else map[ak].push({n:nm,q:qty,staple:false,recipes:[{id:meal.id,name:meal.name,color:col,batch:rec.batch}]});
       });
@@ -448,12 +448,26 @@ function buildList(){
   S.oos.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],oos:true});});
   // Add extras (one-off items like dog food, toilet paper etc)
   S.extras.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],extra:true});});
-  // Cross-aisle deduplication — merge items with the same name across different aisles
-  // Keep the item in the aisle it first appeared, merge qty and recipes from duplicates
+  // Normalize ingredient name for comparison — strips plurals, parens, prep notes
+  function normName(s){
+    return s.toLowerCase()
+      .replace(/\(.*?\)/g,"")       // remove (optional) notes
+      .replace(/,.*$/,"")            // remove ", diced" etc
+      .trim()
+      .replace(/tomatoes$/,"tomato") // tomatoes -> tomato
+      .replace(/potatoes$/,"potato") // potatoes -> potato
+      .replace(/ies$/,"y")           // berries -> berry
+      .replace(/ves$/,"ve")          // cloves -> clove, leaves -> leave
+      .replace(/([^e])es$/,"$1e")    // oranges -> orange, etc (not cloves again)
+      .replace(/([^s])s$/,"$1")      // lemons -> lemon, onions -> onion (not "ss")
+      .replace(/\s+/g," ").trim();
+  }
+
+  // Cross-aisle deduplication
   const seen={};
   AK.forEach(ak=>{
     map[ak]=map[ak].filter(item=>{
-      const nk=item.n.toLowerCase().replace(/\(.*?\)/g,"").trim().split(/[\s,]+/).slice(0,3).join(" ");
+      const nk=normName(item.n).split(/\s+/).slice(0,3).join(" ");
       if(seen[nk]){
         // Merge into the existing item
         const ex=seen[nk];
