@@ -83,9 +83,6 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .lwday{font-size:10px;color:var(--text3);width:28px;flex-shrink:0}
 .lwnm{font-size:12px;color:var(--text2);flex:1}
 /* LIST */
-.list-toggles{display:flex;gap:7px;margin-bottom:12px}
-.ltog{padding:7px 14px;border-radius:20px;border:1.5px solid var(--warm2);background:#fff;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;transition:all .15s}
-.ltog.on{background:var(--dark);color:var(--cream);border-color:var(--dark)}
 .prog{height:3px;background:var(--warm2);border-radius:2px;overflow:hidden;margin-bottom:12px}
 .progf{height:100%;background:var(--green);border-radius:2px;transition:width .35s}
 .pmeta{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
@@ -97,7 +94,7 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .adot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
 .anm{font-size:12px;font-weight:500;color:var(--text2);flex:1}
 .act{font-size:11px;color:var(--text3)}
-.srow{display:flex;align-items:flex-start;gap:11px;padding:9px 14px;border-bottom:1px solid var(--warm1);cursor:pointer;transition:background .1s}
+.srow{display:flex;align-items:center;gap:11px;padding:9px 14px;border-bottom:1px solid var(--warm1);cursor:pointer;transition:background .1s}
 .srow:last-child{border-bottom:none}.srow:active{background:var(--warm1)}
 .chk{width:21px;height:21px;border-radius:50%;border:1.5px solid var(--warm3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:transparent;transition:all .2s;margin-top:1px}
 .chk.done{background:var(--green);border-color:var(--green);color:#fff}
@@ -107,7 +104,6 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
 .sqty{font-size:11px;color:var(--text3);margin-top:1px;font-weight:500}
 .sbadges{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px}
 .sbadge{font-size:10px;padding:2px 7px;border-radius:20px;white-space:nowrap}
-.fmtag{font-size:10px;background:#E3EDE3;color:var(--green);padding:2px 6px;border-radius:10px;margin-left:4px}
 
 .oos-row{display:flex;align-items:center;gap:9px;padding:9px 14px;border-bottom:1px solid var(--warm1);cursor:pointer}
 .oos-row:last-child{border-bottom:none}
@@ -254,6 +250,35 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
     <div class="picklist" id="plist"></div>
   </div>
 </div>
+<!-- Edit list item -->
+<div class="bd" id="m-edititem" style="display:none" onclick="if(event.target===this)closeM('m-edititem')">
+  <div class="sh">
+    <div class="hndl"></div>
+    <div class="shtl">Edit <em>item</em></div>
+    <div class="shsub">Change the name, quantity or which aisle this item belongs to.</div>
+    <div class="flbl">Item name</div>
+    <input class="fin" id="ei-name" placeholder="Item name">
+    <div class="flbl">Quantity</div>
+    <input class="fin" id="ei-qty" placeholder="e.g. 500g, 2, 1 bunch">
+    <div class="flbl">Aisle</div>
+    <select class="fin" id="ei-aisle" style="cursor:pointer"></select>
+    <input type="hidden" id="ei-origaisle">
+    <input type="hidden" id="ei-origname">
+    <button class="cbtn" onclick="saveItemEdit()">Save changes</button>
+  </div>
+</div>
+
+<!-- Finish shopping confirmation -->
+<div class="bd" id="m-finish" style="display:none" onclick="if(event.target===this)closeM('m-finish')">
+  <div class="sh">
+    <div class="hndl"></div>
+    <div class="shtl">Finish <em>shopping?</em></div>
+    <div class="shsub">Any unticked items will appear on the Plan page so you know what to look out for this week. Your ticks will reset ready for next time.</div>
+    <button class="cbtn" onclick="finishShopping()" style="background:var(--green)">✓ Done — finalise list</button>
+    <button onclick="closeM('m-finish')" style="width:100%;padding:13px;background:transparent;border:none;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text3);cursor:pointer;margin-top:8px">Cancel</button>
+  </div>
+</div>
+
 <div class="bd" id="m-extra" style="display:none" onclick="if(event.target===this)closeM('m-extra')">
   <div class="sh">
     <div class="hndl"></div>
@@ -304,9 +329,11 @@ function applyKey(key,value){
   if(key==="dismissed")S.dismissed=arr(value);
   if(key==="staples")  S.staples=arr(value).length?arr(value):DSTAPLES;
   if(key==="notes")    S.notes=value||"";
-  if(key==="oos")      S.oos=arr(value);
   if(key==="extras")   S.extras=arr(value);
-  if(key==="skipped")  S.skipped=value||{};
+  if(key==="skipped")   S.skipped=value||{};
+  if(key==="missedItems")   S.missedItems=arr(value);
+  if(key==="itemOverrides") S.itemOverrides=value||{};
+  if(key==="batchExtra")    S.batchExtra=value||null;
   if(key==="weekStart")     S.weekStart=value||"";
   if(key==="collapsedAisles") S.collapsedAisles=value||{};
   if(key==="aisleOrder")      S.aisleOrder=arr(value);
@@ -330,60 +357,61 @@ async function initDB(){
 const SRC={own:{label:"My Recipe",color:"#A8896C"},kic:{label:"KIC",color:"#C97B84"},rte:{label:"RecipeTin",color:"#7B9E87"},ontrac:{label:"OnTrac5",color:"#7B8CBE"},other:{label:"Other",color:"#9B8BB0"}};
 const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat"];
 const SEASONS={all:{label:"Year-round",color:"#7B9E87"},summer:{label:"Summer",color:"#C97B84"},winter:{label:"Winter",color:"#4A6B8A"},spring:{label:"Spring",color:"#7B8CBE"},autumn:{label:"Autumn",color:"#A8896C"}};
-const AISLES=[{key:"fm",name:"Farmers Market",color:"#5C7A5E"},{key:"produce",name:"Fresh Produce",color:"#7B9E87"},{key:"deli",name:"Deli",color:"#9B8BB0"},{key:"meat",name:"Meat & Seafood",color:"#B85A5A"},{key:"bakery",name:"Bakery",color:"#A8896C"},{key:"dairy",name:"Dairy & Eggs",color:"#7B9E87"},{key:"pasta",name:"Pasta, Rice & Grains",color:"#7B8CBE"},{key:"pantry",name:"Sauces & Pantry",color:"#9B8070"},{key:"frozen",name:"Frozen",color:"#4A6B8A"},{key:"breakfast",name:"Breakfast & Cereal",color:"#C97B84"},{key:"household",name:"Household",color:"#7B8CBE"},{key:"pets",name:"Pets",color:"#A8896C"}];
+const AISLES=[{key:"fresh",name:"Fresh Produce",color:"#5C7A5E"},{key:"deli",name:"Deli",color:"#9B8BB0"},{key:"meat",name:"Meat & Seafood",color:"#B85A5A"},{key:"bakery",name:"Bakery",color:"#A8896C"},{key:"dairy",name:"Dairy & Eggs",color:"#7B9E87"},{key:"pasta",name:"Pasta, Rice & Grains",color:"#7B8CBE"},{key:"pantry",name:"Sauces & Pantry",color:"#9B8070"},{key:"frozen",name:"Frozen",color:"#4A6B8A"},{key:"breakfast",name:"Breakfast & Cereal",color:"#C97B84"},{key:"household",name:"Household",color:"#7B8CBE"},{key:"pets",name:"Pets",color:"#A8896C"}];
 const AK=AISLES.map(a=>a.key);
 const ANMS=Object.fromEntries(AISLES.map(a=>[a.key,a.name]));
 
 // ── DEFAULT DATA ──────────────────────────────────────────────────
 const DREC=[
-  {id:1,name:"Marry Me Chicken Risoni",tag:"Chicken · Pasta",src:"kic",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{produce:[{n:"Garlic",q:"3 cloves"},{n:"Cherry tomatoes",q:"1 punnet"},{n:"Baby spinach",q:"handful"}],meat:[{n:"Chicken thighs",q:"600g"}],dairy:[{n:"Parmesan",q:"50g"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Risoni",q:"300g"}],pantry:[{n:"Chicken stock",q:"500ml"},{n:"Smoked paprika",q:"1 tsp"},{n:"Olive oil",q:"2 tbsp"}]}},
-  {id:2,name:"One Pot Beef Lasagne",tag:"Beef · Pasta",src:"rte",url:"https://www.recipetineats.com/one-pot-beef-lasagna-with-layers/",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{produce:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"3 cloves"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Mozzarella",q:"1 cup"},{n:"Parmesan",q:"grated"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Lasagne sheets",q:"250g"}],pantry:[{n:"Mutti Passata",q:"700g"},{n:"Beef stock",q:"250ml"},{n:"Dried oregano",q:"1 tsp"},{n:"Olive oil",q:"1 tbsp"}]}},
-  {id:3,name:"Greek Chicken Kebab Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-greek-chicken-kebab-bowl",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Lebanese cucumbers",q:"2"}],produce:[{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"},{n:"Potatoes",q:"500g"}],meat:[{n:"Chicken breast",q:"500g"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pasta:[{n:"Basmati rice",q:"1 cup"}],pantry:[{n:"Olive oil",q:"2 tbsp"},{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
-  {id:4,name:"Sausages & Mash",tag:"Pork · Comfort",src:"own",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{produce:[{n:"Garlic",q:"2 cloves"},{n:"Broccolini",q:"1 bunch"},{n:"Potatoes",q:"800g"},{n:"Lemons",q:"1"}],meat:[{n:"Herb & Garlic sausages",q:"1 pack"}],dairy:[{n:"Butter",q:"2 tbsp"},{n:"Milk",q:"splash"}],pantry:[{n:"Olive oil",q:"1 tbsp"}]}},
-  {id:5,name:"Steak w/ Chimichurri & Chips",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Flat-leaf parsley",q:"1 bunch"}],produce:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"1"},{n:"Broccolini",q:"1 bunch"},{n:"Potatoes",q:"600g"}],meat:[{n:"Eye fillet / rump steak",q:"2 steaks"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Red wine vinegar",q:"1 tbsp"},{n:"Cumin",q:"1 tsp"}]}},
-  {id:6,name:"Crispy Rice Chicken Salad",tag:"Chicken · Salad",src:"ontrac",url:"https://ontrac5.com/recipes/bang-bang-chicken-crispy-rice-salad",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Lebanese cucumbers",q:"2"},{n:"Seasonal salad greens",q:"bag"},{n:"Carrots",q:"1"}],produce:[{n:"Lemons",q:"1"},{n:"Garlic",q:"2 cloves"}],meat:[{n:"Chicken breast",q:"500g"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"}]}},
-  {id:7,name:"Tuna Bake",tag:"Fish · Bake",src:"own",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{produce:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"2 cloves"}],meat:[{n:"Canned tuna",q:"3 cans"}],dairy:[{n:"Mozzarella",q:"1 cup"},{n:"Butter",q:"1 tbsp"},{n:"Sour cream",q:"100g"}],pasta:[{n:"Risoni",q:"250g"}],pantry:[{n:"Chicken stock",q:"400ml"},{n:"Olive oil",q:"1 tbsp"}]}},
-  {id:8,name:"Chicken Caesar Salad",tag:"Chicken · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Seasonal salad greens",q:"bag"}],produce:[{n:"Lemons",q:"1"},{n:"Garlic",q:"1 clove"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Parmesan",q:"50g shaved"}],pantry:[{n:"Olive oil",q:"2 tbsp"},{n:"Kewpie mayo",q:"3 tbsp"}]}},
-  {id:9,name:"Homemade Pizza",tag:"Chicken · Veg",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{produce:[{n:"Garlic",q:"2 cloves"},{n:"Cherry tomatoes",q:"handful"}],deli:[{n:"Shaved ham / salami",q:"100g"}],meat:[{n:"Chicken breast",q:"200g cooked"}],dairy:[{n:"Mozzarella",q:"1.5 cups"}],bakery:[{n:"Pizza bases",q:"2"}],pantry:[{n:"Mutti Passata",q:"½ bottle"},{n:"Dried oregano",q:"1 tsp"}]}},
-  {id:10,name:"Homemade Burgers",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Seasonal salad greens",q:"handful"},{n:"Lebanese cucumbers",q:"1"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Mozzarella",q:"½ cup"},{n:"Sour cream",q:"for sauce"}],bakery:[{n:"Burger buns",q:"4"}],pantry:[{n:"Olive oil",q:"1 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
-  {id:11,name:"Beef Mince Taco Bowl",tag:"Beef · Mexican",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fm:[{n:"Lebanese cucumbers",q:"2"},{n:"Seasonal salad greens",q:"bag"}],produce:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Sour cream",q:"100g"},{n:"Mozzarella",q:"½ cup"}],pasta:[{n:"Basmati rice",q:"1.5 cups"}],pantry:[{n:"Mingle taco seasoning",q:"1 pack"},{n:"Taco shells & wraps",q:"1 pack ea."}]}},
-  {id:12,name:"Fried Rice & Gyoza",tag:"Chicken · Asian",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fm:[{n:"Carrots",q:"2"},{n:"Capsicum",q:"1"}],produce:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"}],meat:[{n:"Chicken thighs",q:"400g"},{n:"Gyoza",q:"1 pack"}],dairy:[{n:"Eggs",q:"3"}],pasta:[{n:"Jasmine rice",q:"2 cups day-old"}],frozen:[{n:"Frozen corn",q:"½ cup"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Oyster sauce",q:"2 tbsp"}]}},
-  {id:13,name:"Prawn Pasta",tag:"Seafood · Pasta",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Flat-leaf parsley",q:"½ bunch"}],produce:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"2"},{n:"Cherry tomatoes",q:"1 punnet"}],meat:[{n:"Frozen prawns",q:"500g"}],pasta:[{n:"Spaghetti",q:"400g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Chilli flakes",q:"pinch"}]}},
-  {id:14,name:"Gyoza Stir Fry",tag:"Pork · Asian",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fm:[{n:"Capsicum",q:"1"},{n:"Carrots",q:"2"}],produce:[{n:"Garlic",q:"3 cloves"},{n:"Broccolini",q:"1 bunch"}],meat:[{n:"Gyoza",q:"1 pack"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Oyster sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
-  {id:15,name:"Spaghetti Bolognese",tag:"Beef · Pasta",src:"own",url:"",special:false,active:true,season:"all",batch:true,notes:"Batch cook with 1kg mince — freezes well.",ingredients:{fm:[{n:"Flat-leaf parsley",q:"½ bunch"}],produce:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"4 cloves"}],meat:[{n:"Beef mince",q:"1kg"}],dairy:[{n:"Parmesan",q:"to serve"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Spaghetti",q:"500g"}],pantry:[{n:"Mutti Passata",q:"2 × 700g"},{n:"Beef stock",q:"250ml"},{n:"Dried oregano",q:"1 tsp"}]}},
-  {id:16,name:"Greek Pasta Salad",tag:"Veg · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Lebanese cucumbers",q:"2"},{n:"Feta cheese",q:"200g"}],produce:[{n:"Cherry tomatoes",q:"1 punnet"},{n:"Lemons",q:"1"}],pasta:[{n:"Risoni",q:"250g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Dried oregano",q:"1 tsp"}]}},
-  {id:17,name:"Burger Salad",tag:"Beef · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Seasonal salad greens",q:"bag"},{n:"Lebanese cucumbers",q:"1"},{n:"Feta cheese",q:"100g"}],produce:[{n:"Cherry tomatoes",q:"handful"},{n:"Brown onion",q:"½"}],meat:[{n:"Beef mince",q:"400g"}],pantry:[{n:"Olive oil",q:"1 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
-  {id:18,name:"Pork Ramen Noodles",tag:"Pork · Asian",src:"ontrac",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{produce:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"},{n:"Broccolini",q:"1 bunch"}],meat:[{n:"Herb & Garlic sausages",q:"1 pack sliced"}],dairy:[{n:"Eggs",q:"2 soft boiled"}],pasta:[{n:"Ramen noodles",q:"2 packs"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Chicken stock",q:"500ml"}]}},
-  {id:19,name:"Salmon Pesto Pasta",tag:"Salmon · Pasta",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{meat:[{n:"Salmon fillets",q:"2"}],produce:[{n:"Lemons",q:"1"},{n:"Cherry tomatoes",q:"handful"}],dairy:[{n:"Parmesan",q:"30g"}],pasta:[{n:"Spaghetti",q:"300g"}],pantry:[{n:"Pesto",q:"4 tbsp"},{n:"Olive oil",q:"1 tbsp"}]}},
-  {id:20,name:"Rice Paper Noodle Bowl",tag:"Chicken · Fresh",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fm:[{n:"Carrots",q:"2 julienned"},{n:"Capsicum",q:"1 sliced"},{n:"Lebanese cucumbers",q:"2"}],produce:[{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Chicken breast",q:"400g"}],pasta:[{n:"Rice paper rolls",q:"1 pack"},{n:"Rice noodles",q:"200g"}],pantry:[{n:"Soy sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
-  {id:21,name:"Lamb Shoulder Gyros",tag:"Lamb · Special",src:"own",url:"",special:true,active:true,season:"all",batch:false,notes:"Special occasion only.",ingredients:{fm:[{n:"Flat-leaf parsley",q:"1 bunch"},{n:"Lebanese cucumbers",q:"2"}],produce:[{n:"Garlic",q:"6 cloves"},{n:"Lemons",q:"2"},{n:"Brown onion",q:"1"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
+  {id:1,name:"Marry Me Chicken Risoni",tag:"Chicken · Pasta",src:"kic",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Garlic",q:"3 cloves"},{n:"Cherry tomatoes",q:"1 punnet"},{n:"Baby spinach",q:"handful"}],meat:[{n:"Chicken thighs",q:"600g"}],dairy:[{n:"Parmesan",q:"50g"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Risoni",q:"300g"}],pantry:[{n:"Chicken stock",q:"500ml"},{n:"Smoked paprika",q:"1 tsp"},{n:"Olive oil",q:"2 tbsp"}]}},
+  {id:2,name:"One Pot Beef Lasagne",tag:"Beef · Pasta",src:"rte",url:"https://www.recipetineats.com/one-pot-beef-lasagna-with-layers/",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"3 cloves"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Mozzarella",q:"1 cup"},{n:"Parmesan",q:"grated"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Lasagne sheets",q:"250g"}],pantry:[{n:"Mutti Passata",q:"700g"},{n:"Beef stock",q:"250ml"},{n:"Dried oregano",q:"1 tsp"},{n:"Olive oil",q:"1 tbsp"}]}},
+  {id:3,name:"Greek Chicken Kebab Bowl",tag:"Chicken · Bowl",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-greek-chicken-kebab-bowl",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Lebanese cucumbers",q:"2"}],fresh:[{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"},{n:"Potatoes",q:"500g"}],meat:[{n:"Chicken breast",q:"500g"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pasta:[{n:"Basmati rice",q:"1 cup"}],pantry:[{n:"Olive oil",q:"2 tbsp"},{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
+  {id:4,name:"Sausages & Mash",tag:"Pork · Comfort",src:"own",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{fresh:[{n:"Garlic",q:"2 cloves"},{n:"Broccolini",q:"1 bunch"},{n:"Potatoes",q:"800g"},{n:"Lemons",q:"1"}],meat:[{n:"Herb & Garlic sausages",q:"1 pack"}],dairy:[{n:"Butter",q:"2 tbsp"},{n:"Milk",q:"splash"}],pantry:[{n:"Olive oil",q:"1 tbsp"}]}},
+  {id:5,name:"Steak w/ Chimichurri & Chips",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Flat-leaf parsley",q:"1 bunch"}],fresh:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"1"},{n:"Broccolini",q:"1 bunch"},{n:"Potatoes",q:"600g"}],meat:[{n:"Eye fillet / rump steak",q:"2 steaks"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Red wine vinegar",q:"1 tbsp"},{n:"Cumin",q:"1 tsp"}]}},
+  {id:6,name:"Crispy Rice Chicken Salad",tag:"Chicken · Salad",src:"ontrac",url:"https://ontrac5.com/recipes/bang-bang-chicken-crispy-rice-salad",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Lebanese cucumbers",q:"2"},{n:"Seasonal salad greens",q:"bag"},{n:"Carrots",q:"1"}],fresh:[{n:"Lemons",q:"1"},{n:"Garlic",q:"2 cloves"}],meat:[{n:"Chicken breast",q:"500g"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"}]}},
+  {id:7,name:"Tuna Bake",tag:"Fish · Bake",src:"own",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{fresh:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"2 cloves"}],meat:[{n:"Canned tuna",q:"3 cans"}],dairy:[{n:"Mozzarella",q:"1 cup"},{n:"Butter",q:"1 tbsp"},{n:"Sour cream",q:"100g"}],pasta:[{n:"Risoni",q:"250g"}],pantry:[{n:"Chicken stock",q:"400ml"},{n:"Olive oil",q:"1 tbsp"}]}},
+  {id:8,name:"Chicken Caesar Salad",tag:"Chicken · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Seasonal salad greens",q:"bag"}],fresh:[{n:"Lemons",q:"1"},{n:"Garlic",q:"1 clove"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Parmesan",q:"50g shaved"}],pantry:[{n:"Olive oil",q:"2 tbsp"},{n:"Kewpie mayo",q:"3 tbsp"}]}},
+  {id:9,name:"Homemade Pizza",tag:"Chicken · Veg",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Garlic",q:"2 cloves"},{n:"Cherry tomatoes",q:"handful"}],deli:[{n:"Shaved ham / salami",q:"100g"}],meat:[{n:"Chicken breast",q:"200g cooked"}],dairy:[{n:"Mozzarella",q:"1.5 cups"}],bakery:[{n:"Pizza bases",q:"2"}],pantry:[{n:"Mutti Passata",q:"½ bottle"},{n:"Dried oregano",q:"1 tsp"}]}},
+  {id:10,name:"Homemade Burgers",tag:"Beef · Grill",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Seasonal salad greens",q:"handful"},{n:"Lebanese cucumbers",q:"1"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Mozzarella",q:"½ cup"},{n:"Sour cream",q:"for sauce"}],bakery:[{n:"Burger buns",q:"4"}],pantry:[{n:"Olive oil",q:"1 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
+  {id:11,name:"Beef Mince Taco Bowl",tag:"Beef · Mexican",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Lebanese cucumbers",q:"2"},{n:"Seasonal salad greens",q:"bag"}],fresh:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Beef mince",q:"500g"}],dairy:[{n:"Sour cream",q:"100g"},{n:"Mozzarella",q:"½ cup"}],pasta:[{n:"Basmati rice",q:"1.5 cups"}],pantry:[{n:"Mingle taco seasoning",q:"1 pack"},{n:"Taco shells & wraps",q:"1 pack ea."}]}},
+  {id:12,name:"Fried Rice & Gyoza",tag:"Chicken · Asian",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Carrots",q:"2"},{n:"Capsicum",q:"1"}],fresh:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"}],meat:[{n:"Chicken thighs",q:"400g"},{n:"Gyoza",q:"1 pack"}],dairy:[{n:"Eggs",q:"3"}],pasta:[{n:"Jasmine rice",q:"2 cups day-old"}],frozen:[{n:"Frozen corn",q:"½ cup"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Oyster sauce",q:"2 tbsp"}]}},
+  {id:13,name:"Prawn Pasta",tag:"Seafood · Pasta",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Flat-leaf parsley",q:"½ bunch"}],fresh:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"2"},{n:"Cherry tomatoes",q:"1 punnet"}],meat:[{n:"Frozen prawns",q:"500g"}],pasta:[{n:"Spaghetti",q:"400g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Chilli flakes",q:"pinch"}]}},
+  {id:14,name:"Gyoza Stir Fry",tag:"Pork · Asian",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{fresh:[{n:"Capsicum",q:"1"},{n:"Carrots",q:"2"}],fresh:[{n:"Garlic",q:"3 cloves"},{n:"Broccolini",q:"1 bunch"}],meat:[{n:"Gyoza",q:"1 pack"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Oyster sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
+  {id:15,name:"Spaghetti Bolognese",tag:"Beef · Pasta",src:"own",url:"",special:false,active:true,season:"all",batch:true,notes:"Batch cook with 1kg mince — freezes well.",ingredients:{fresh:[{n:"Flat-leaf parsley",q:"½ bunch"}],fresh:[{n:"Brown onion",q:"1"},{n:"Garlic",q:"4 cloves"}],meat:[{n:"Beef mince",q:"1kg"}],dairy:[{n:"Parmesan",q:"to serve"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Spaghetti",q:"500g"}],pantry:[{n:"Mutti Passata",q:"2 × 700g"},{n:"Beef stock",q:"250ml"},{n:"Dried oregano",q:"1 tsp"}]}},
+  {id:16,name:"Greek Pasta Salad",tag:"Veg · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Lebanese cucumbers",q:"2"},{n:"Feta cheese",q:"200g"}],fresh:[{n:"Cherry tomatoes",q:"1 punnet"},{n:"Lemons",q:"1"}],pasta:[{n:"Risoni",q:"250g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Dried oregano",q:"1 tsp"}]}},
+  {id:17,name:"Burger Salad",tag:"Beef · Salad",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Seasonal salad greens",q:"bag"},{n:"Lebanese cucumbers",q:"1"},{n:"Feta cheese",q:"100g"}],fresh:[{n:"Cherry tomatoes",q:"handful"},{n:"Brown onion",q:"½"}],meat:[{n:"Beef mince",q:"400g"}],pantry:[{n:"Olive oil",q:"1 tbsp"},{n:"Kewpie mayo",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
+  {id:18,name:"Pork Ramen Noodles",tag:"Pork · Asian",src:"ontrac",url:"",special:false,active:true,season:"winter",batch:false,notes:"",ingredients:{fresh:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"},{n:"Broccolini",q:"1 bunch"}],meat:[{n:"Herb & Garlic sausages",q:"1 pack sliced"}],dairy:[{n:"Eggs",q:"2 soft boiled"}],pasta:[{n:"Ramen noodles",q:"2 packs"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Chicken stock",q:"500ml"}]}},
+  {id:19,name:"Salmon Pesto Pasta",tag:"Salmon · Pasta",src:"own",url:"",special:false,active:true,season:"all",batch:false,notes:"",ingredients:{meat:[{n:"Salmon fillets",q:"2"}],fresh:[{n:"Lemons",q:"1"},{n:"Cherry tomatoes",q:"handful"}],dairy:[{n:"Parmesan",q:"30g"}],pasta:[{n:"Spaghetti",q:"300g"}],pantry:[{n:"Pesto",q:"4 tbsp"},{n:"Olive oil",q:"1 tbsp"}]}},
+  {id:20,name:"Rice Paper Noodle Bowl",tag:"Chicken · Fresh",src:"own",url:"",special:false,active:true,season:"summer",batch:false,notes:"",ingredients:{fresh:[{n:"Carrots",q:"2 julienned"},{n:"Capsicum",q:"1 sliced"},{n:"Lebanese cucumbers",q:"2"}],fresh:[{n:"Garlic",q:"2 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Chicken breast",q:"400g"}],pasta:[{n:"Rice paper rolls",q:"1 pack"},{n:"Rice noodles",q:"200g"}],pantry:[{n:"Soy sauce",q:"2 tbsp"},{n:"Sweet chilli sauce",q:"2 tbsp"}]}},
+  {id:22,name:"Chicken Schnitzel (batch)",tag:"Chicken · Batch",src:"own",url:"",special:false,active:true,season:"all",batch:true,notes:"Batch cook ~8 schnitzels. Use in Crispy Rice Salad, Caesar Salad, Pizza, Burgers.",rating:0,ingredients:{meat:[{n:"Chicken breast",q:"1kg (butterflied & pounded)"}],dairy:[{n:"Eggs",q:"3"},{n:"Milk",q:"splash"}],pantry:[{n:"Breadcrumbs",q:"2 cups"},{n:"Plain flour",q:"1 cup"},{n:"Salt & pepper",q:"to taste"},{n:"Smoked paprika",q:"1 tsp"},{n:"Olive oil",q:"for frying"}]}},
+  {id:21,name:"Lamb Shoulder Gyros",tag:"Lamb · Special",src:"own",url:"",special:true,active:true,season:"all",batch:false,notes:"Special occasion only.",ingredients:{fresh:[{n:"Flat-leaf parsley",q:"1 bunch"},{n:"Lebanese cucumbers",q:"2"}],fresh:[{n:"Garlic",q:"6 cloves"},{n:"Lemons",q:"2"},{n:"Brown onion",q:"1"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pantry:[{n:"Olive oil",q:"3 tbsp"},{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
 ];
 
 const DSTAPLES=[
   {id:"s1",section:"Breakfast",items:[{n:"Chobani Greek yoghurt",q:"2 × 700g"},{n:"Milk (full cream)",q:"3L"},{n:"Free range eggs",q:"~9 this week"},{n:"Weet-Bix",q:"750g"},{n:"Just Right",q:"500g"},{n:"Honey",q:"500g"},{n:"Bega Smooth PB",q:"375g"},{n:"Crumpets",q:"1 pack"}]},
-  {id:"s2",section:"Fresh Fruit & Veg",items:[{n:"Bananas",q:"6–8 (FM)"},{n:"Avocados",q:"3 (FM)"},{n:"Lemons",q:"4"},{n:"Cherry tomatoes",q:"1 punnet"},{n:"Baby spinach",q:"120g"},{n:"Broccolini",q:"2 bunches"},{n:"Brown onions",q:"1 bag (FM)"},{n:"Garlic bulbs",q:"1–2"}]},
+  {id:"s2",section:"Fresh Produce & FM",items:[{n:"Bananas",q:"6–8 (FM)"},{n:"Avocados",q:"3 (FM)"},{n:"Lemons",q:"4"},{n:"Cherry tomatoes",q:"1 punnet"},{n:"Baby spinach",q:"120g"},{n:"Broccolini",q:"2 bunches"},{n:"Brown onions",q:"1 bag (FM)"},{n:"Garlic bulbs",q:"1–2"}]},
   {id:"s3",section:"Deli & Dairy",items:[{n:"Meredith goat cheese",q:"1 jar"},{n:"Feta cheese",q:"200g (FM)"},{n:"Sourdough loaf",q:"1 loaf (FM)"}]},
   {id:"s4",section:"Frozen",items:[{n:"Frozen raspberries",q:"1kg"},{n:"Hashbrowns (Your Spud Co)",q:"1 box"},{n:"Frozen corn",q:"500g"},{n:"Gyoza (Woolworths)",q:"2 packs"}]},
   {id:"s5",section:"Pantry",items:[{n:"Mutti Passata",q:"2 bottles"},{n:"Chicken stock",q:"1L"},{n:"Beef stock",q:"1L"},{n:"Mingle taco seasoning",q:"1–2 packs"},{n:"Taco shells & wraps",q:"1 pack ea."},{n:"Soy sauce",q:"top up"},{n:"Oyster sauce",q:"top up"},{n:"Olive oil",q:"top up"},{n:"Kewpie mayo",q:"top up"},{n:"Sweet chilli sauce",q:"top up"}]},
 ];
 
 const SUGG=[
-  {id:"g1",name:"Honey Soy Steak Rice Bowl",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/recipes/honey-soy-steak-rice-bowl",time:"10 min",desc:"Seared steak over jasmine rice with a punchy honey-soy glaze.",season:"all",ingredients:{produce:[{n:"Garlic",q:"2 cloves"}],meat:[{n:"Steak",q:"2"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Honey",q:"1 tbsp"},{n:"Oyster sauce",q:"2 tbsp"}]}},
-  {id:"g2",name:"Greek Chicken Gyros with Tzatziki",tag:"Chicken · Greek",src:"ontrac",url:"https://ontrac5.com/recipes/greek-chicken-gyros-with-tzatziki",time:"15 min",desc:"Herby marinated chicken, house-made tzatziki, warm pita.",season:"summer",ingredients:{fm:[{n:"Lebanese cucumbers",q:"1"},{n:"Flat-leaf parsley",q:"½ bunch"}],produce:[{n:"Garlic",q:"3 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Chicken thighs",q:"600g"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pantry:[{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
-  {id:"g3",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no cream.",season:"all",ingredients:{produce:[{n:"Garlic",q:"3 cloves"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Parmesan",q:"60g"},{n:"Butter",q:"2 tbsp"}],pasta:[{n:"Fettuccine",q:"350g"}],pantry:[{n:"Chicken stock",q:"500ml"}]}},
-  {id:"g4",name:"Vodka Chicken Pasta",tag:"Chicken · Pasta",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-vodka-chicken-pasta",time:"20 min",desc:"Rich tomato-ricotta sauce. High-protein twist on a classic.",season:"all",ingredients:{produce:[{n:"Garlic",q:"3 cloves"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Ricotta",q:"150g"}],pasta:[{n:"Rigatoni",q:"300g"}],pantry:[{n:"Mutti Passata",q:"½ bottle"},{n:"Smoked paprika",q:"1 tsp"}]}},
-  {id:"g5",name:"Carne Asada Tacos",tag:"Beef · Mexican",src:"ontrac",url:"https://ontrac5.com/recipes/carne-asada-tacos",time:"10 min",desc:"Jalapeño-lime chimichurri over seared beef in warm tortillas.",season:"summer",ingredients:{fm:[{n:"Flat-leaf parsley",q:"1 bunch"}],produce:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Steak",q:"2"}],pantry:[{n:"Taco shells & wraps",q:"1 pack"},{n:"Cumin",q:"1 tsp"}]}},
-  {id:"g6",name:"Chicken Pasta Bake",tag:"Chicken · Bake",src:"rte",url:"https://www.recipetineats.com/chicken-pasta-bake/",time:"45 min",desc:"Big, bubbly, cheesy bake. One dish dinner.",season:"winter",ingredients:{produce:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"}],meat:[{n:"Chicken thighs",q:"700g"}],dairy:[{n:"Mozzarella",q:"1.5 cups"},{n:"Parmesan",q:"50g"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Penne",q:"300g"}],pantry:[{n:"Mutti Passata",q:"700g"},{n:"Chicken stock",q:"250ml"}]}},
+  {id:"g1",name:"Honey Soy Steak Rice Bowl",tag:"Beef · Asian",src:"ontrac",url:"https://ontrac5.com/recipes/honey-soy-steak-rice-bowl",time:"10 min",desc:"Seared steak over jasmine rice with a punchy honey-soy glaze.",season:"all",ingredients:{fresh:[{n:"Garlic",q:"2 cloves"}],meat:[{n:"Steak",q:"2"}],pasta:[{n:"Jasmine rice",q:"1.5 cups"}],pantry:[{n:"Soy sauce",q:"3 tbsp"},{n:"Honey",q:"1 tbsp"},{n:"Oyster sauce",q:"2 tbsp"}]}},
+  {id:"g2",name:"Greek Chicken Gyros with Tzatziki",tag:"Chicken · Greek",src:"ontrac",url:"https://ontrac5.com/recipes/greek-chicken-gyros-with-tzatziki",time:"15 min",desc:"Herby marinated chicken, house-made tzatziki, warm pita.",season:"summer",ingredients:{fresh:[{n:"Lebanese cucumbers",q:"1"},{n:"Flat-leaf parsley",q:"½ bunch"}],fresh:[{n:"Garlic",q:"3 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Chicken thighs",q:"600g"}],dairy:[{n:"Greek yoghurt",q:"200g"}],pantry:[{n:"Dried oregano",q:"1 tsp"},{n:"Cumin",q:"1 tsp"}]}},
+  {id:"g3",name:"Creamy Chicken & Bacon Pasta",tag:"Chicken · Pasta",src:"rte",url:"https://www.recipetineats.com/creamy-chicken-and-bacon-pasta/",time:"25 min",desc:"Nagi's iconic shredded chicken pasta — luxurious sauce, no cream.",season:"all",ingredients:{fresh:[{n:"Garlic",q:"3 cloves"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Parmesan",q:"60g"},{n:"Butter",q:"2 tbsp"}],pasta:[{n:"Fettuccine",q:"350g"}],pantry:[{n:"Chicken stock",q:"500ml"}]}},
+  {id:"g4",name:"Vodka Chicken Pasta",tag:"Chicken · Pasta",src:"ontrac",url:"https://ontrac5.com/recipes/high-protein-vodka-chicken-pasta",time:"20 min",desc:"Rich tomato-ricotta sauce. High-protein twist on a classic.",season:"all",ingredients:{fresh:[{n:"Garlic",q:"3 cloves"}],meat:[{n:"Chicken breast",q:"400g"}],dairy:[{n:"Ricotta",q:"150g"}],pasta:[{n:"Rigatoni",q:"300g"}],pantry:[{n:"Mutti Passata",q:"½ bottle"},{n:"Smoked paprika",q:"1 tsp"}]}},
+  {id:"g5",name:"Carne Asada Tacos",tag:"Beef · Mexican",src:"ontrac",url:"https://ontrac5.com/recipes/carne-asada-tacos",time:"10 min",desc:"Jalapeño-lime chimichurri over seared beef in warm tortillas.",season:"summer",ingredients:{fresh:[{n:"Flat-leaf parsley",q:"1 bunch"}],fresh:[{n:"Garlic",q:"4 cloves"},{n:"Lemons",q:"1"}],meat:[{n:"Steak",q:"2"}],pantry:[{n:"Taco shells & wraps",q:"1 pack"},{n:"Cumin",q:"1 tsp"}]}},
+  {id:"g6",name:"Chicken Pasta Bake",tag:"Chicken · Bake",src:"rte",url:"https://www.recipetineats.com/chicken-pasta-bake/",time:"45 min",desc:"Big, bubbly, cheesy bake. One dish dinner.",season:"winter",ingredients:{fresh:[{n:"Garlic",q:"3 cloves"},{n:"Brown onion",q:"1"}],meat:[{n:"Chicken thighs",q:"700g"}],dairy:[{n:"Mozzarella",q:"1.5 cups"},{n:"Parmesan",q:"50g"},{n:"Butter",q:"1 tbsp"}],pasta:[{n:"Penne",q:"300g"}],pantry:[{n:"Mutti Passata",q:"700g"},{n:"Chicken stock",q:"250ml"}]}},
 ];
 
 // ── STATE ─────────────────────────────────────────────────────────
 var S={
   tab:"plan",recipes:DREC.map(r=>({...r})),meals:[],lastWeek:[],checked:{},locked:false,
   dismissed:[],staples:DSTAPLES.map(s=>({...s,items:s.items.map(i=>({...i}))})),
-  notes:"",oos:[],cookCount:{},extras:[],skipped:{},
+  notes:"",cookCount:{},extras:[],skipped:{},missedItems:[],itemOverrides:{},batchExtra:null,
   sync:"off",editId:null,editIngs:{},selSrc:"own",selSeason:"all",
   q:"",pickDay:null,scrapeTimer:null,scrapedIngs:{},
-  listFMOnly:false,weekStart:"",collapsedAisles:{},aisleOrder:[],
+weekStart:"",collapsedAisles:{},aisleOrder:[],
 };
 
 // ── HELPERS ───────────────────────────────────────────────────────
@@ -407,8 +435,7 @@ function mergeQty(a,b){
 // ── AISLE GUESSER ─────────────────────────────────────────────────
 function guessAisle(n){
   const l=n.toLowerCase();
-  if(/(banana|avocado|cucumber|capsicum|carrot|zucchini|lettuce|spinach|salad|parsley|coriander|basil|mint|chive|spring onion|lemon|lime|mango|berry|feta|sourdough|onion)/.test(l))return"fm";
-  if(/(garlic|potato|sweet potato|mushroom|ginger|chilli|chili|celery|tomato|broccolini|broccoli)/.test(l))return"produce";
+  if(/(banana|avocado|cucumber|capsicum|carrot|zucchini|lettuce|spinach|salad|parsley|coriander|basil|mint|chive|spring onion|lemon|lime|mango|berry|feta|sourdough|onion|garlic|potato|sweet potato|mushroom|ginger|chilli|chili|celery|tomato|broccolini|broccoli|herb|cherry tomato)/.test(l))return"fresh";
   if(/(yoghurt|yogurt|goat cheese|meredith|chobani|ham|salami)/.test(l))return"deli";
   if(/(chicken|beef|mince|steak|lamb|pork|sausage|bacon|prawn|shrimp|salmon|tuna|fish|gyoza|dumpling)/.test(l))return"meat";
   if(/(bread|bun|roll|pita|wrap|tortilla|pizza base|crumpet)/.test(l))return"bakery";
@@ -435,6 +462,7 @@ function buildList(){
     AK.forEach(ak=>{
       (rec.ingredients[ak]||[]).forEach(ing=>{
         const nm=typeof ing==="string"?ing:(ing.n||"");let qty=typeof ing==="string"?"":(ing.q||"");if(!nm)return;
+        if(alwaysHave(nm))return; // skip olive oil, salt & pepper
         // Double qty for batch cook recipes
         if(batchMult===2&&qty){const parsed=qty.match(/^([\d\.]+)(.*)/);if(parsed){const doubled=parseFloat(parsed[1])*2;qty=doubled+parsed[2];}}
         const nk=normName(nm).split(/\s+/).slice(0,3).join(" ");
@@ -444,10 +472,32 @@ function buildList(){
       });
     });
   });
-  // Add OOS items
-  S.oos.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],oos:true});});
+  // Add batch extra ingredients
+  if(S.batchExtra&&S.batchExtra.ingredients){
+    const col=(SRC[S.batchExtra.src||"own"]||SRC.own).color;
+    AK.forEach(ak=>{
+      (S.batchExtra.ingredients[ak]||[]).forEach(ing=>{
+        const nm=typeof ing==="string"?ing:(ing.n||"");
+        const qty=typeof ing==="string"?"":(ing.q||"");
+        if(!nm)return;
+        if(alwaysHave(nm))return;
+        const nk=normName(nm).split(/\s+/).slice(0,3).join(" ");
+        const ex=map[ak].find(i=>{const ek=normName(i.n).split(/\s+/).slice(0,3).join(" ");return ek===nk||ek.includes(nk)||nk.includes(ek);});
+        if(ex){if(!ex.recipes.find(r=>r.id==="batch"))ex.recipes.push({id:"batch",name:S.batchExtra.name,color:col});if(qty&&ex.q&&ex.q!==qty&&!ex.q.includes(qty))ex.q=mergeQty(ex.q,qty);else if(qty&&!ex.q)ex.q=qty;}
+        else map[ak].push({n:nm,q:qty,staple:false,recipes:[{id:"batch",name:S.batchExtra.name,color:col}]});
+      });
+    });
+  }
+
   // Add extras (one-off items like dog food, toilet paper etc)
   S.extras.forEach(item=>{const k=guessAisle(item.n);if(map[k])map[k].push({n:item.n,q:item.q||"",staple:false,recipes:[],extra:true});});
+  // Ingredients always excluded from the list (subscriptions / always stocked)
+  const ALWAYS_HAVE=["olive oil","salt","pepper","salt & pepper","salt and pepper","salt & pepper to taste","sea salt","black pepper","white pepper"];
+  function alwaysHave(name){
+    const n=name.toLowerCase().replace(/\(.*?\)/g,"").replace(/,.*$/,"").trim();
+    return ALWAYS_HAVE.some(ex=>n===ex||n.startsWith(ex)||ex.startsWith(n));
+  }
+
   // Normalize ingredient name for comparison — strips plurals, parens, prep notes
   function normName(s){
     return s.toLowerCase()
@@ -461,6 +511,27 @@ function buildList(){
       .replace(/([^e])es$/,"$1e")    // oranges -> orange, etc (not cloves again)
       .replace(/([^s])s$/,"$1")      // lemons -> lemon, onions -> onion (not "ss")
       .replace(/\s+/g," ").trim();
+  }
+
+  // Apply item overrides (user edits to name/qty/aisle)
+  if(S.itemOverrides&&Object.keys(S.itemOverrides).length){
+    AK.forEach(ak=>{
+      map[ak]=map[ak].filter(item=>{
+        const k=ak+":"+item.n;
+        const ov=S.itemOverrides[k];
+        if(ov){
+          if(ov.aisle&&ov.aisle!==ak){
+            // Move to different aisle
+            if(!map[ov.aisle])map[ov.aisle]=[];
+            map[ov.aisle].push({...item,n:ov.n||item.n,q:ov.q||item.q});
+            return false;
+          }
+          item.n=ov.n||item.n;
+          item.q=ov.q||item.q;
+        }
+        return true;
+      });
+    });
   }
 
   // Cross-aisle deduplication
@@ -530,6 +601,23 @@ function rPlan(){
   // Balance warnings
   checkBalance().forEach(w=>{h+=`<div class="warn ${w.type}"><span>⚠️</span><span>${esc(w.msg)}</span></div>`;});
   h+=`<div style="font-family:'Fraunces',serif;font-size:13px;color:var(--text3);margin-bottom:10px;font-style:italic">w/c ${getWeekLabel()}</div>`;
+  // Missed items from last shop
+  const missedRecipe=(S.missedItems||[]).filter(item=>item.recipes&&item.recipes.length>0);
+  if(missedRecipe.length){
+    h+=`<div style="background:#FFF4E0;border-radius:14px;padding:14px 16px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:500;letter-spacing:1.2px;text-transform:uppercase;color:var(--orange);margin-bottom:10px">⚠️ Couldn't get last shop</div>`;
+    missedRecipe.forEach(item=>{
+      const recStr=item.recipes.join(", ");
+      h+=`<div style="display:flex;align-items:flex-start;justify-content:space-between;padding:7px 0;border-bottom:1px solid rgba(186,117,23,.15)">
+        <div>
+          <div style="font-size:13px;color:var(--dark);font-weight:500">${esc(item.n)}${item.q?` <span style="font-weight:400;color:var(--text3)">${esc(item.q)}</span>`:""}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Needed for: ${esc(recStr)}</div>
+        </div>
+        <span style="font-size:10px;color:var(--orange);background:rgba(186,117,23,.12);padding:2px 8px;border-radius:10px;flex-shrink:0;margin-left:8px">${esc(item.aisle)}</span>
+      </div>`;
+    });
+    h+=`<button onclick="save('missedItems',[])" style="margin-top:10px;background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;font-family:'DM Sans',sans-serif;padding:0">Clear</button></div>`;
+  }
   if(S.locked)h+=`<div class="lkbanner">🔒 Week locked — shuffle & edits off</div>`;
   // Check if any slot has a meal
   const anyMeals=S.meals.some(m=>m&&!m.nightOff);
@@ -587,6 +675,32 @@ function rPlan(){
   }
   h+=`<div class="rest"><span class="mday" style="color:var(--text3)">Sun</span><span>Leftovers / rest</span></div></div>`;
   h+=`<div class="wact"><button class="btn primary" onclick="shuffle()" ${S.locked?"disabled":""}><span class="spin" id="sp">⟳</span> ${!S.meals.length?"Fill the week":"Shuffle week"}</button><button class="btn sec" onclick="toggleLock()">${S.locked?"🔓":"🔒"}</button></div>`;
+  // Batch cook slot
+  const batchRecipes=S.recipes.filter(r=>r.batch&&!r.special&&r.active);
+  if(batchRecipes.length){
+    const sel=S.batchExtra;
+    h+=`<div style="background:#fff;border-radius:16px;overflow:hidden;margin-top:12px;box-shadow:0 1px 8px rgba(44,32,22,.07)">
+      <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--warm1)">
+        <span style="font-size:18px">📦</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500;color:var(--text1)">Batch cook this week?</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px">Adds ingredients to shopping list</div>
+        </div>
+      </div>`;
+    batchRecipes.forEach(r=>{
+      const isSelected=sel&&sel.id===r.id;
+      h+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--warm1);cursor:pointer" onclick="toggleBatchExtra(${r.id})">
+        <div style="flex:1">
+          <div style="font-size:13px;color:var(--text1)">${esc(r.name)}</div>
+          ${r.notes?`<div style="font-size:11px;color:var(--text3);margin-top:1px">${esc(r.notes)}</div>`:""}
+        </div>
+        <div style="width:22px;height:22px;border-radius:50%;border:1.5px solid ${isSelected?"var(--green)":"var(--warm3)"};background:${isSelected?"var(--green)":"transparent"};display:flex;align-items:center;justify-content:center;font-size:12px;color:#fff;flex-shrink:0">${isSelected?"✓":""}</div>
+      </div>`;
+    });
+    h+=`<div style="padding:11px 14px;font-size:11px;color:var(--text3);font-style:italic">None — tap to select</div>` ;
+    h+=`</div>`;
+  }
+
   // Weekly notes
   h+=`<div class="notes-card"><div style="font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:6px">📝 Weekly notes</div><textarea class="notes-ta" id="notes-ta" placeholder="e.g. Maddi away Wed, Mark's birthday Fri…" onchange="save('notes',this.value)" oninput="S.notes=this.value;autoResize(this)">${esc(S.notes)}</textarea></div>`;
   if(S.lastWeek.length){h+=`<div class="slbl">Last week</div><div class="lwcard">`;S.lastWeek.forEach((m,i)=>{const s=SRC[m.src]||SRC.other;h+=`<div class="lwrow"><span class="lwday">${DAYS[i]||"—"}</span><span class="lwnm">${esc(m.name)}</span><span class="stag" style="background:${s.color}22;color:${s.color};font-size:9px;padding:2px 6px">${s.label}</span></div>`;});h+=`</div>`;}
@@ -595,12 +709,9 @@ function rPlan(){
 
 function rList(){
   const list=buildList();
-  let displayList=S.listFMOnly?list.filter(a=>a.key==="fm"):list;
+  let displayList=list;
   const tot=list.reduce((a,s)=>a+s.items.length,0);const done=Object.values(S.checked).filter(Boolean).length;const pct=tot?Math.round(done/tot*100):0;
-  let h=`<div class="list-toggles">
-    <button class="ltog${!S.listFMOnly?" on":""}" onclick="S.listFMOnly=false;go('list')">🛒 All items</button>
-    <button class="ltog${S.listFMOnly?" on":""}" onclick="S.listFMOnly=true;go('list')">🌿 FM only</button>
-  </div>`;
+  let h="";
   if(!S.meals.length)h+=`<div class="card" style="text-align:center;padding:18px 14px"><div style="font-size:26px;margin-bottom:8px">📅</div><div style="font-size:13px;font-weight:500;margin-bottom:4px">No meals planned</div><div style="font-size:12px;color:var(--text3)">Go to Plan → Shuffle first</div></div>`;
   else h+=`<div class="card" style="display:flex;align-items:center;gap:10px;padding:11px 14px"><span style="font-size:18px">✨</span><div><div style="font-size:12px;font-weight:500">${S.meals.length} meal${S.meals.length>1?"s":""} · quantities combined</div><div style="font-size:11px;color:var(--text3);margin-top:1px">Ticks sync live · 3s refresh</div></div></div>`;
   // Show skipped items banner if any
@@ -613,10 +724,8 @@ function rList(){
       <span style="font-size:14px">›</span>
     </div>`;
   }
-  h+=`<div style="display:flex;gap:8px;margin-bottom:12px">
-    <button onclick="promptOOS()" style="flex:1;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer">⚠️ Out of stock</button>
-    <button onclick="promptExtra()" style="flex:1;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer">＋ Extra item</button>
-  </div>`;
+  h+=`<button onclick="openExtra()" style="width:100%;padding:11px;background:var(--warm1);border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;margin-bottom:12px">＋ Extra item</button>`;
+  h+=`<button onclick="openFinish()" style="width:100%;padding:13px;background:var(--green);color:#fff;border:none;border-radius:13px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">🛍 Finish shopping</button>`;
   h+=`<div class="pmeta"><span class="ptxt">${done} of ${tot} items</span>${done?`<button class="rbtn" onclick="resetChecked()">Reset</button>`:""}</div><div class="prog"><div class="progf" style="width:${pct}%"></div></div>`;
   // Sort aisles by user order
   const aisleOrder=getAisleOrder();
@@ -654,24 +763,19 @@ function rList(){
         h+=`<div class="srow" onclick="chk('${key}')">
           <div class="chk${dn?" done":""}">${dn?"✓":""}</div>
           <div class="sinfo">
-            <div class="snm${dn?" done":""}">${esc(item.n)}${aisle.key==="fm"?'<span class="fmtag">FM</span>':""}</div>
+            <div class="snm${dn?" done":""}">${esc(item.n)}</div>
             ${item.q?`<div class="sqty">${esc(item.q)}</div>`:""}
             ${!dn&&badges?`<div class="sbadges">${badges}</div>`:""}
           </div>
-          <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
-              ${!dn?`<button onclick="event.stopPropagation();skipItem('${aisle.key}','${esc(item.n)}')" title="Skip this week" style="background:none;border:none;font-size:14px;cursor:pointer;color:var(--text3);padding:2px;line-height:1">−</button>`:""}
-          </div>
+          <div style="display:flex;align-items:center;flex-shrink:0">
+          ${!dn?`<button onclick="event.stopPropagation();skipItem('${aisle.key}','${esc(item.n)}')" style="background:var(--warm1);border:none;border-radius:8px;font-size:11px;font-weight:500;cursor:pointer;color:var(--text2);padding:5px 11px;line-height:1;flex-shrink:0;margin-right:6px">Skip</button>`:"<span style='width:60px'></span>"}
+          ${!dn?`<button onclick="event.stopPropagation();openEditItem('${aisle.key}','${esc(item.n)}','${esc(item.q||"")}')" title="Edit" style="background:none;border:none;font-size:15px;cursor:pointer;color:var(--text3);padding:2px;line-height:1;flex-shrink:0">✏️</button>`:""}
+        </div>
         </div>`;
       });
     }
     h+=`</div>`;
   });
-  // OOS section
-  if(S.oos.length){
-    h+=`<div class="slbl">Out of stock — added to list</div><div class="aislecard">`;
-    S.oos.forEach((item,i)=>{h+=`<div class="oos-row"><span style="flex:1;font-size:13px">${esc(item.n)}</span><span style="font-size:11px;color:var(--text3)">${esc(item.q||"")}</span><button style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:4px" onclick="removeOOS(${i})">✕</button></div>`;});
-    h+=`</div>`;
-  }
 
   if(S.extras.length){
     h+=`<div class="slbl" style="margin-top:14px">Extra items this week</div><div class="aislecard">`;
@@ -815,6 +919,51 @@ function restoreItem(key){
   delete updated[key];
   save("skipped",updated);
 }
+function openFinish(){document.getElementById("m-finish").style.display="flex";}
+function openEditItem(aisleKey,itemName,itemQty){
+  document.getElementById("ei-name").value=itemName;
+  document.getElementById("ei-qty").value=itemQty||"";
+  document.getElementById("ei-origaisle").value=aisleKey;
+  document.getElementById("ei-origname").value=itemName;
+  // Populate aisle select
+  const sel=document.getElementById("ei-aisle");
+  sel.innerHTML=AISLES.map(a=>`<option value="${a.key}"${a.key===aisleKey?" selected":""}>${a.name}</option>`).join("");
+  document.getElementById("m-edititem").style.display="flex";
+}
+function saveItemEdit(){
+  const newName=document.getElementById("ei-name").value.trim();
+  const newQty=document.getElementById("ei-qty").value.trim();
+  const newAisle=document.getElementById("ei-aisle").value;
+  const origAisle=document.getElementById("ei-origaisle").value;
+  const origName=document.getElementById("ei-origname").value;
+  if(!newName)return;
+  // Apply overrides stored in S.itemOverrides (persisted)
+  const overrides={...S.itemOverrides};
+  const key=origAisle+":"+origName;
+  overrides[key]={n:newName,q:newQty,aisle:newAisle};
+  save("itemOverrides",overrides);
+  closeM("m-edititem");
+}
+function finishShopping(){
+  // Find all unchecked items and record them as missed
+  const list=buildList();
+  const missed=[];
+  list.forEach((aisle,ai)=>{
+    aisle.items.forEach((item,ii)=>{
+      const key=aisle.key+"-"+ii;
+      if(!S.checked[key]){
+        // Find which recipes need this item
+        const recipeNames=(item.recipes||[]).map(r=>r.name);
+        missed.push({n:item.n,q:item.q||"",aisle:aisle.name,recipes:recipeNames});
+      }
+    });
+  });
+  save("missedItems",missed);
+  save("checked",{});   // reset ticks for next shop
+  save("skipped",{});   // restore skipped items
+  closeM("m-finish");
+  go("plan");
+}
 function skipItem(aisleKey,name){
   const k=aisleKey+":"+name;
   save("skipped",{...S.skipped,[k]:true});
@@ -857,6 +1006,13 @@ function checkWeekReset(){
   if(S.weekStart!==currentWeek){
     save("weekStart",currentWeek);
   }
+}
+function toggleBatchExtra(id){
+  const rec=S.recipes.find(r=>r.id===id);
+  if(!rec)return;
+  // Toggle off if already selected
+  if(S.batchExtra&&S.batchExtra.id===id) save("batchExtra",null);
+  else save("batchExtra",{id:rec.id,name:rec.name,src:rec.src,ingredients:rec.ingredients||{}});
 }
 function autoResize(el){el.style.height="auto";el.style.height=(el.scrollHeight)+"px";}
 function toggleLock(){
@@ -901,8 +1057,6 @@ function submitExtra(){
   closeM("m-extra");
 }
 function removeExtra(i){const o=[...S.extras];o.splice(i,1);save("extras",o);}
-function promptOOS(){const n=prompt("Item name:");if(!n)return;const q=prompt("Quantity (optional):","");save("oos",[...S.oos,{n,q:q||""}]);}
-function removeOOS(i){const o=[...S.oos];o.splice(i,1);save("oos",o);}
 function updStaple(si,ii,f,v){const u=JSON.parse(JSON.stringify(S.staples));u[si].items[ii][f]=v;save("staples",u);}
 function rmStaple(si,ii){const u=JSON.parse(JSON.stringify(S.staples));u[si].items.splice(ii,1);save("staples",u);}
 function addStaple(si){const u=JSON.parse(JSON.stringify(S.staples));u[si].items.push({n:"",q:""});save("staples",u);}
