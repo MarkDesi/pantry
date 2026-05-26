@@ -218,9 +218,16 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
   <div class="sh">
     <div class="hndl"></div>
     <div class="shtl" id="add-ttl">Add a <em>recipe</em></div>
-    <div class="shsub">Paste a URL to auto-fill from RecipeTin, OnTrac5 or KIC.</div>
+    <div class="shsub">Paste a URL to auto-fill, or take a photo of the recipe.</div>
     <div class="flbl">Recipe URL</div>
     <input class="fin" id="f-url" type="url" placeholder="https://..." oninput="onUrl(this.value)">
+    <div style="display:flex;align-items:center;gap:8px;margin:-6px 0 14px">
+      <div style="flex:1;height:1px;background:var(--warm2)"></div>
+      <span style="font-size:11px;color:var(--text3)">or</span>
+      <div style="flex:1;height:1px;background:var(--warm2)"></div>
+    </div>
+    <input type="file" id="recipe-img" accept="image/*" capture="environment" style="display:none" onchange="scanRecipePhoto(this)">
+    <button onclick="document.getElementById('recipe-img').click()" style="width:100%;padding:11px;background:var(--warm1);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">📷 Scan recipe photo</button>
     <div class="scrapest" id="scrapest"></div>
     <div class="flbl">Recipe name *</div>
     <input class="fin" id="f-name" placeholder="e.g. Thai Basil Chicken" oninput="valForm()">
@@ -789,7 +796,7 @@ function rmIng(ak,ii){if(S.editIngs[ak])S.editIngs[ak].splice(ii,1);document.get
 function getAESTDate(){const now=new Date();return new Date(now.getTime()+10*60*60*1000);}
 function getWeekStartStr(){const d=getAESTDate();const day=d.getUTCDay();const diff=(day===0)?6:(day-1);const mon=new Date(d);mon.setUTCDate(d.getUTCDate()-diff);return mon.toISOString().slice(0,10);}
 function getWeekLabel(){const d=getAESTDate();const day=d.getUTCDay();const diff=(day===0)?6:(day-1);const mon=new Date(d);mon.setUTCDate(d.getUTCDate()-diff);const sun=new Date(mon);sun.setUTCDate(mon.getUTCDate()+6);const fmt=dt=>dt.toLocaleDateString("en-AU",{day:"numeric",month:"short",timeZone:"UTC"});return fmt(mon)+" — "+fmt(sun);}
-function checkWeekReset(){const cur=getWeekStartStr();if(S.weekStart&&S.weekStart!==cur){save("skipped",{});save("extras",[]);}if(S.weekStart!==cur)save("weekStart",cur);}
+function checkWeekReset(){const cur=getWeekStartStr();if(S.weekStart&&S.weekStart!==cur){save("skipped",{});save("extras",[]);save("notes","");}if(S.weekStart!==cur)save("weekStart",cur);}
 function curSeason(){const m=getAESTDate().getMonth();if(m>=11||m<=1)return"summer";if(m>=2&&m<=4)return"autumn";if(m>=5&&m<=7)return"winter";return"spring";}
 function checkBalance(){
   const warns=[];const realM=S.meals.filter(m=>m&&!m.nightOff);if(!realM.length)return warns;
@@ -884,14 +891,154 @@ function saveRecipe(){const name=document.getElementById("f-name").value.trim();
 function closeM(id){document.getElementById(id).style.display="none";}
 
 // ── URL SCRAPER ───────────────────────────────────────────────────
-const PROXIES=[u=>`https://corsproxy.io/?${encodeURIComponent(u)}`,u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`];
-async function fetchProxy(url){for(const mk of PROXIES){try{const r=await fetch(mk(url),{signal:AbortSignal.timeout(7000)});if(!r.ok)continue;const t=await r.text();try{const j=JSON.parse(t);if(j.contents)return j.contents;}catch{}return t;}catch{}}return null;}
+const PROXIES=[
+  u=>`https://corsproxy.io/?url=${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
+  u=>`https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`,
+  u=>`https://thingproxy.freeboard.io/fetch/${u}`,
+];
+async function fetchProxy(url){
+  for(const mk of PROXIES){
+    try{
+      const r=await fetch(mk(url),{signal:AbortSignal.timeout(9000)});
+      if(!r.ok)continue;
+      const t=await r.text();
+      if(!t||t.length<100)continue; // skip empty/tiny responses
+      try{const j=JSON.parse(t);if(j.contents&&j.contents.length>100)return j.contents;}catch{}
+      // If it looks like HTML, use it directly
+      if(t.includes('<html')||t.includes('<!DOCTYPE')||t.includes('<script'))return t;
+    }catch(e){console.warn("proxy failed:",mk(url).substring(0,50),e.message);}
+  }
+  return null;
+}
 function splitIngredient(raw){let str=raw.replace(/\(\(.*?\)\)/g,"").replace(/\(,\s*/g,"(").replace(/\s{2,}/g," ").trim();let qty="",name=str;const qtyRe=/^((?:[\d]+\s+)?[\d¼½¾⅓⅔⅛⅜⅝⅞]*[\/\d\.]*\s*(?:g|kg|ml|l|lb|oz|cups?|tbsps?|tsps?|teaspoons?|tablespoons?|bunchs?|bunches|cloves?|pieces?|cans?|tins?|bottles?|sprigs?|handfuls?|pinch|dash|small|medium|large)s?\s+|(?:[\d]+\s+[\d\/\.]+|[\d¼½¾⅓⅔⅛⅜⅝⅞\/\.]+)\s+|[\d]+\s+)/i;const m=str.match(qtyRe);if(m){qty=m[1].trim();name=str.slice(m[1].length).trim();}name=name.replace(/\s*\([^)]*\)\s*/g," ").replace(/,.*$/,"").replace(/\s{2,}/g," ").trim();if(name)name=name.charAt(0).toUpperCase()+name.slice(1);return{n:name||str.trim(),q:qty};}
 function catIngs(list){const m={};AK.forEach(k=>{m[k]=[];});const rules=[{k:"meat",w:["chicken","beef","mince","steak","lamb","pork","sausage","bacon","prawn","shrimp","salmon","tuna","fish","gyoza","dumpling","seafood"]},{k:"dairy",w:["milk","cream","butter","cheese","parmesan","mozzarella","ricotta","yoghurt","yogurt","egg","feta","halloumi","sour cream"]},{k:"pasta",w:["pasta","spaghetti","fettuccine","penne","rigatoni","lasagne","rice","noodle","udon","ramen","risoni","orzo"]},{k:"frozen",w:["frozen","edamame","hashbrown"]},{k:"bakery",w:["bread","sourdough","bun","roll","pita","wrap","tortilla","pizza base","crumpet"]},{k:"fresh",w:["cucumber","capsicum","carrot","avocado","banana","zucchini","lettuce","spinach","salad","parsley","coriander","basil","mint","lemon","lime","mango","berry","tomato","onion","garlic","potato","sweet potato","mushroom","ginger","chilli","chili","celery","broccolini","broccoli","spring onion","green onion"]},{k:"breakfast",w:["oat","cereal","granola","weetbix","peanut butter"]}];list.forEach(raw=>{if(!raw||!raw.trim())return;const parsed=splitIngredient(raw);const l=parsed.n.toLowerCase();let placed=false;for(const rule of rules){if(rule.w.some(w=>l.includes(w))){m[rule.k].push(parsed);placed=true;break;}}if(!placed)m.pantry.push(parsed);});AK.forEach(k=>{if(!m[k].length)delete m[k];});return m;}
 function onUrl(val){clearTimeout(S.scrapeTimer);S.scrapedIngs={};if(!val||!val.startsWith("http")){document.getElementById("scrapest").className="scrapest";return;}if(val.includes("recipetineats.com"))selSrc("rte");else if(val.includes("ontrac5.com"))selSrc("ontrac");else if(val.includes("kic"))selSrc("kic");S.scrapeTimer=setTimeout(()=>doScrape(val),800);}
-async function doScrape(url){const st=document.getElementById("scrapest");st.className="scrapest loading";st.textContent="Fetching recipe…";const html=await fetchProxy(url);if(!html){st.className="scrapest err";st.textContent="Couldn't reach that URL — type the name manually.";return;}let title="",ings=[];for(const m of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){try{const j=JSON.parse(m[1]);const schemas=Array.isArray(j)?j:[j];for(const sc of schemas){const item=sc["@type"]==="Recipe"?sc:(sc["@graph"]||[]).find(g=>g["@type"]==="Recipe");if(item){title=item.name||"";ings=item.recipeIngredient||[];break;}}if(title)break;}catch{}}if(!title){const og=html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);if(og)title=og[1];else{const t=html.match(/<title[^>]*>([^<]{3,100})<\/title>/i);if(t)title=t[1];}}title=title.replace(/\s*[|\-–—].*$/,"").replace(/&amp;/g,"&").replace(/&#0*39;/g,"'").trim();if(!title){st.className="scrapest err";st.textContent="Couldn't read that page — type the name manually.";return;}document.getElementById("f-name").value=title;valForm();if(ings.length){S.scrapedIngs=catIngs(ings);S.editIngs=JSON.parse(JSON.stringify(S.scrapedIngs));document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);const tot=Object.values(S.scrapedIngs).reduce((a,v)=>a+v.length,0);st.className="scrapest ok";st.textContent=`✓ "${title.substring(0,36)}" — ${tot} ingredients found`;}else{st.className="scrapest ok";st.textContent=`✓ "${title.substring(0,46)}" — add ingredients below`;}}
+async function doScrape(url){
+  const st=document.getElementById("scrapest");
+  st.className="scrapest loading";st.textContent="Fetching recipe…";
+  const html=await fetchProxy(url);
+  if(!html){st.className="scrapest err";st.textContent="Couldn't reach that URL — type the name manually.";return;}
 
-// ── BOOT ──────────────────────────────────────────────────────────
+  let title="",ings=[];
+
+  // ── Method 1: JSON-LD schema (RecipeTin, most blogs) ─────────────
+  for(const m of html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)){
+    try{
+      const j=JSON.parse(m[1]);const schemas=Array.isArray(j)?j:[j];
+      for(const sc of schemas){
+        const item=sc["@type"]==="Recipe"?sc:(sc["@graph"]||[]).find(g=>g["@type"]==="Recipe");
+        if(item){title=item.name||"";ings=item.recipeIngredient||[];break;}
+      }
+      if(title)break;
+    }catch{}
+  }
+
+  // ── Method 2: Microdata itemprop (OnTrac5 and others) ────────────
+  if(!ings.length){
+    const ingMatches=html.matchAll(/itemprop=["'](?:recipeIngredient|ingredients)["'][^>]*>([^<]+)</gi);
+    for(const m of ingMatches){const t=m[1].trim();if(t)ings.push(t);}
+    // Also try data-ingredient and common class names
+    if(!ings.length){
+      const classMatches=html.matchAll(/class=["'][^"']*(?:ingredient)[^"']*["'][^>]*>([^<]{3,80})</gi);
+      for(const m of classMatches){const t=m[1].trim();if(t&&!t.includes('<'))ings.push(t);}
+    }
+  }
+
+  // ── Method 3: Look for structured ingredient lists ────────────────
+  if(!ings.length){
+    // Look for <li> items inside any element with "ingredient" in id/class
+    const sections=html.matchAll(/(?:id|class)=["'][^"']*ingredient[^"']*["'][^>]*>([\s\S]{0,2000}?)<\/(?:ul|ol|div|section)/gi);
+    for(const s of sections){
+      const lis=s[1].matchAll(/<li[^>]*>([^<]{3,100})<\/li>/gi);
+      for(const li of lis){const t=li[1].trim();if(t)ings.push(t);}
+    }
+  }
+
+  // ── Get title if not found ────────────────────────────────────────
+  if(!title){
+    const og=html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i)||
+             html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+    if(og)title=og[1];
+    else{const t=html.match(/<title[^>]*>([^<]{3,100})<\/title>/i);if(t)title=t[1];}
+  }
+
+  title=title.replace(/\s*[|\-–—].*$/,"").replace(/&amp;/g,"&").replace(/&#0*39;/g,"'").trim();
+  if(!title){st.className="scrapest err";st.textContent="Couldn't read that page — type the name manually.";return;}
+  document.getElementById("f-name").value=title;valForm();
+
+  if(ings.length){
+    S.scrapedIngs=catIngs(ings);S.editIngs=JSON.parse(JSON.stringify(S.scrapedIngs));
+    document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);
+    const tot=Object.values(S.scrapedIngs).reduce((a,v)=>a+v.length,0);
+    st.className="scrapest ok";st.textContent=`✓ "${title.substring(0,36)}" — ${tot} ingredients found`;
+  }else{
+    st.className="scrapest ok";st.textContent=`✓ "${title.substring(0,46)}" — add ingredients below`;
+  }
+}
+
+// ── RECIPE PHOTO SCANNER ──────────────────────────────────────────
+async function scanRecipePhoto(input){
+  const file=input.files[0];if(!file)return;
+  const st=document.getElementById("scrapest");
+  st.className="scrapest loading";st.textContent="Reading recipe photo…";
+
+  // Convert to base64
+  const b64=await new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result.split(",")[1]);
+    r.onerror=()=>rej(new Error("Read failed"));
+    r.readAsDataURL(file);
+  });
+
+  try{
+    const resp=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:1500,
+        messages:[{role:"user",content:[
+          {type:"image",source:{type:"base64",media_type:file.type||"image/jpeg",data:b64}},
+          {type:"text",text:`This is a screenshot of a recipe. Please extract:
+1. The recipe name
+2. Every ingredient with its quantity
+
+Return ONLY a JSON object in this exact format, no other text:
+{"name":"Recipe Name","ingredients":["2 chicken breasts","1 cup rice","3 cloves garlic"]}`}
+        ]}]}),
+    });
+
+    const data=await resp.json();
+    const text=(data.content||[]).map(c=>c.text||"").join("");
+
+    // Parse JSON response
+    const jsonMatch=text.match(/\{[\s\S]*"name"[\s\S]*"ingredients"[\s\S]*\}/);
+    if(!jsonMatch){st.className="scrapest err";st.textContent="Couldn't read the photo — try a clearer image or type manually.";return;}
+
+    const parsed=JSON.parse(jsonMatch[0]);
+    if(parsed.name){
+      document.getElementById("f-name").value=parsed.name;
+      valForm();
+    }
+    if(parsed.ingredients&&parsed.ingredients.length){
+      S.scrapedIngs=catIngs(parsed.ingredients);
+      S.editIngs=JSON.parse(JSON.stringify(S.scrapedIngs));
+      document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);
+      const tot=Object.values(S.scrapedIngs).reduce((a,v)=>a+v.length,0);
+      st.className="scrapest ok";
+      st.textContent=`✓ "${(parsed.name||"Recipe").substring(0,36)}" — ${tot} ingredients found`;
+    }else{
+      st.className="scrapest ok";
+      st.textContent=`✓ Name filled — add ingredients below`;
+    }
+  }catch(e){
+    st.className="scrapest err";
+    st.textContent="Something went wrong — try again or add ingredients manually.";
+  }
+  // Reset file input so same photo can be re-selected
+  input.value="";
+}
 go("plan");
 initDB();
 </script>
