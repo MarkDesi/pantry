@@ -218,17 +218,16 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
   <div class="sh">
     <div class="hndl"></div>
     <div class="shtl" id="add-ttl">Add a <em>recipe</em></div>
-    <div class="shsub">Paste a URL to auto-fill, or take a photo of the recipe.</div>
+    <div class="shsub">Paste a URL to auto-fill, or paste the ingredient list directly.</div>
     <div class="flbl">Recipe URL</div>
     <input class="fin" id="f-url" type="url" placeholder="https://..." oninput="onUrl(this.value)">
+    <div class="scrapest" id="scrapest"></div>
     <div style="display:flex;align-items:center;gap:8px;margin:-6px 0 14px">
       <div style="flex:1;height:1px;background:var(--warm2)"></div>
-      <span style="font-size:11px;color:var(--text3)">or</span>
+      <span style="font-size:11px;color:var(--text3)">or paste ingredients</span>
       <div style="flex:1;height:1px;background:var(--warm2)"></div>
     </div>
-    <input type="file" id="recipe-img" style="display:none" onchange="scanRecipePhoto(this)">
-    <button onclick="document.getElementById('recipe-img').click()" style="width:100%;padding:11px;background:var(--warm1);border:none;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:8px">📷 Scan recipe photo</button>
-    <div class="scrapest" id="scrapest"></div>
+    <textarea class="fta" id="f-paste" placeholder="Paste ingredient list here, one per line&#10;e.g.&#10;500g chicken breast&#10;2 cloves garlic&#10;1 cup basmati rice" oninput="parsePasted(this.value)"></textarea>
     <div class="flbl">Recipe name *</div>
     <input class="fin" id="f-name" placeholder="e.g. Thai Basil Chicken" oninput="valForm()">
     <div class="flbl">Tags</div>
@@ -880,8 +879,8 @@ function rpick(){const q=(document.getElementById("psrch")||{}).value||"";const 
 function pickMeal(id){const rec=S.recipes.find(r=>r.id===id);if(!rec||S.pickDay===null)return;const m=[...S.meals];m[S.pickDay]=rec;save("meals",m);save("checked",{});closeM("m-pick");}
 
 // ── ADD / EDIT RECIPE MODAL ───────────────────────────────────────
-function openAdd(){S.editId=null;S.editIngs={};S.scrapedIngs={};document.getElementById("add-ttl").innerHTML="Add a <em>recipe</em>";document.getElementById("f-url").value="";document.getElementById("f-name").value="";document.getElementById("f-tag").value="";document.getElementById("f-notes").value="";document.getElementById("scrapest").className="scrapest";document.getElementById("f-batch").className="ios-toggle";S.selSrc="own";S.selSeason="all";rSrcPick();rSeaPick();valForm();document.getElementById("inged").innerHTML=rIngEditor({});document.getElementById("m-add").style.display="flex";setTimeout(()=>document.getElementById("f-url").focus(),300);}
-function openEdit(id){const r=S.recipes.find(x=>x.id===id);if(!r)return;S.editId=id;S.editIngs={};AK.forEach(ak=>{S.editIngs[ak]=(r.ingredients&&r.ingredients[ak]||[]).map(i=>typeof i==="string"?{n:i,q:""}:{n:i.n||"",q:i.q||""});});document.getElementById("add-ttl").innerHTML=`Edit <em>${esc(r.name)}</em>`;document.getElementById("f-url").value=r.url||"";document.getElementById("f-name").value=r.name;document.getElementById("f-tag").value=r.tag||"";document.getElementById("f-notes").value=r.notes||"";document.getElementById("scrapest").className="scrapest";const batch=document.getElementById("f-batch");batch.className="ios-toggle"+(r.batch?" on":"");S.selSrc=r.src||"own";S.selSeason=r.season||"all";rSrcPick();rSeaPick();valForm();document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);document.getElementById("m-add").style.display="flex";}
+function openAdd(){S.editId=null;S.editIngs={};S.scrapedIngs={};document.getElementById("add-ttl").innerHTML="Add a <em>recipe</em>";document.getElementById("f-url").value="";document.getElementById("f-name").value="";document.getElementById("f-tag").value="";document.getElementById("f-notes").value="";document.getElementById("f-paste").value="";document.getElementById("scrapest").className="scrapest";document.getElementById("f-batch").className="ios-toggle";S.selSrc="own";S.selSeason="all";rSrcPick();rSeaPick();valForm();document.getElementById("inged").innerHTML=rIngEditor({});document.getElementById("m-add").style.display="flex";setTimeout(()=>document.getElementById("f-url").focus(),300);}
+function openEdit(id){const r=S.recipes.find(x=>x.id===id);if(!r)return;S.editId=id;S.editIngs={};AK.forEach(ak=>{S.editIngs[ak]=(r.ingredients&&r.ingredients[ak]||[]).map(i=>typeof i==="string"?{n:i,q:""}:{n:i.n||"",q:i.q||""});});document.getElementById("add-ttl").innerHTML=`Edit <em>${esc(r.name)}</em>`;document.getElementById("f-url").value=r.url||"";document.getElementById("f-name").value=r.name;document.getElementById("f-tag").value=r.tag||"";document.getElementById("f-notes").value=r.notes||"";document.getElementById("f-paste").value="";document.getElementById("scrapest").className="scrapest";const batch=document.getElementById("f-batch");batch.className="ios-toggle"+(r.batch?" on":"");S.selSrc=r.src||"own";S.selSeason=r.season||"all";rSrcPick();rSeaPick();valForm();document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);document.getElementById("m-add").style.display="flex";}
 function rSrcPick(){document.getElementById("srcpick").innerHTML=Object.entries(SRC).map(([k,v])=>`<button class="schip${S.selSrc===k?" on":""}" style="${S.selSrc===k?"background:"+v.color+";":""}" onclick="selSrc('${k}')">${v.label}</button>`).join("");}
 function rSeaPick(){document.getElementById("seaspick").innerHTML=Object.entries(SEASONS).map(([k,v])=>`<button class="seachip${S.selSeason===k?" on":""}" style="${S.selSeason===k?"background:"+v.color+";":""}" onclick="selSea('${k}')">${v.label}</button>`).join("");}
 function selSrc(s){S.selSrc=s;rSrcPick();}
@@ -977,7 +976,31 @@ async function doScrape(url){
   }
 }
 
-// ── RECIPE PHOTO SCANNER ──────────────────────────────────────────
+function parsePasted(text){
+  if(!text||!text.trim())return;
+  // Split by newlines, filter empty lines
+  const lines=text.split(/\n/).map(l=>l.trim()).filter(l=>l.length>2);
+  if(!lines.length)return;
+  const parsed=catIngs(lines);
+  // Merge with any existing editIngs
+  AK.forEach(ak=>{
+    if(parsed[ak]&&parsed[ak].length){
+      if(!S.editIngs[ak])S.editIngs[ak]=[];
+      parsed[ak].forEach(item=>{
+        if(!S.editIngs[ak].find(e=>e.n.toLowerCase()===item.n.toLowerCase()))
+          S.editIngs[ak].push(item);
+      });
+    }
+  });
+  S.scrapedIngs=JSON.parse(JSON.stringify(S.editIngs));
+  document.getElementById("inged").innerHTML=rIngEditor(S.editIngs);
+  const tot=Object.values(S.editIngs).reduce((a,v)=>a+v.length,0);
+  if(tot>0){
+    const st=document.getElementById("scrapest");
+    st.className="scrapest ok";
+    st.textContent=`✓ ${tot} ingredient${tot>1?"s":""} sorted into aisles — check below`;
+  }
+}
 async function scanRecipePhoto(input){
   const file=input.files[0];if(!file)return;
   const st=document.getElementById("scrapest");
