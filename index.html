@@ -215,10 +215,13 @@ body{font-family:'DM Sans',sans-serif;background:#F5F0E8;color:#2C2016}
   </div>
   <div class="scr" id="scr"></div>
 </div>
-<div class="bd" id="m-add" style="display:none" onclick="if(event.target===this)closeM('m-add')">
+<div class="bd" id="m-add" style="display:none" onclick="if(event.target===this)confirmCloseAdd()">
   <div class="sh">
     <div class="hndl"></div>
-    <div class="shtl" id="add-ttl">Add a <em>recipe</em></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+      <div class="shtl" id="add-ttl">Add a <em>recipe</em></div>
+      <button onclick="confirmCloseAdd()" style="background:var(--warm1);border:none;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;color:var(--text2);flex-shrink:0">✕</button>
+    </div>
     <div class="shsub">Paste a URL to auto-fill, or paste the ingredient list directly.</div>
     <div class="flbl">Recipe URL</div>
     <input class="fin" id="f-url" type="url" placeholder="https://..." oninput="onUrl(this.value)">
@@ -888,7 +891,23 @@ function selSrc(s){S.selSrc=s;rSrcPick();}
 function selSea(s){S.selSeason=s;rSeaPick();}
 function valForm(){document.getElementById("cbtn").disabled=!document.getElementById("f-name").value.trim();}
 function saveRecipe(){const name=document.getElementById("f-name").value.trim();if(!name)return;const ings=Object.keys(S.scrapedIngs).length?S.scrapedIngs:(()=>{const o={};AK.forEach(ak=>{const rows=(S.editIngs[ak]||[]).filter(i=>i.n&&i.n.trim());if(rows.length)o[ak]=rows;});return o;})();const batch=document.getElementById("f-batch").classList.contains("on");const notes=document.getElementById("f-notes").value.trim();if(S.editId){save("recipes",S.recipes.map(r=>r.id===S.editId?{...r,name,tag:document.getElementById("f-tag").value.trim()||r.tag,src:S.selSrc,url:document.getElementById("f-url").value.trim(),season:S.selSeason,batch,notes,ingredients:ings}:r));save("meals",S.meals.map(m=>m&&m.id===S.editId?{...m,name,src:S.selSrc,batch}:m));}else{save("recipes",[...S.recipes,{id:Date.now(),name,tag:document.getElementById("f-tag").value.trim()||"—",src:S.selSrc,url:document.getElementById("f-url").value.trim(),special:false,active:true,season:S.selSeason,batch,notes,rating:0,ingredients:ings}]);}S.editId=null;S.editIngs={};S.scrapedIngs={};closeM("m-add");go("recipes");}
-function closeM(id){document.getElementById(id).style.display="none";}
+function confirmCloseAdd(){
+  const name=document.getElementById("f-name").value.trim();
+  const hasContent=name||Object.values(S.editIngs).some(a=>a&&a.length);
+  if(hasContent){
+    // Show inline confirmation inside the sheet
+    const existing=document.getElementById("close-confirm");
+    if(existing){existing.remove();return;}
+    const div=document.createElement("div");
+    div.id="close-confirm";
+    div.style.cssText="position:sticky;bottom:0;left:0;right:0;background:var(--dark);color:var(--cream);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;z-index:10;";
+    div.innerHTML=`<span style="font-size:13px">Exit without saving?</span><div style="display:flex;gap:8px"><button onclick="document.getElementById('close-confirm').remove()" style="padding:7px 14px;background:transparent;border:1px solid rgba(255,255,255,.3);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--cream);cursor:pointer">Keep editing</button><button onclick="closeM('m-add');document.getElementById('close-confirm')?.remove()" style="padding:7px 14px;background:var(--red);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:12px;color:#fff;cursor:pointer">Discard</button></div>`;
+    document.querySelector("#m-add .sh").appendChild(div);
+  }else{
+    closeM("m-add");
+  }
+}
+function closeM(id){document.getElementById(id).style.display="none";const c=document.getElementById("close-confirm");if(c)c.remove();}
 
 // ── URL SCRAPER ───────────────────────────────────────────────────
 const PROXIES=[
