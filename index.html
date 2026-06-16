@@ -437,13 +437,52 @@ function curSeason(){const m=getMonth();if(m>=11||m<=1)return"summer";if(m>=2&&m
 // ── QUANTITY MERGING ──────────────────────────────────────────────
 function mergeQty(a,b){
   if(!a)return b;if(!b)return a;
-  a=a.trim();b=b.trim();if(a===b)return a;
-  function parse(q){q=q.trim();const frac=q.match(/^(\d+)\s+(\d+)\/(\d+)/);if(frac)return{value:parseInt(frac[1])+parseInt(frac[2])/parseInt(frac[3]),unit:q.replace(/^[\d\s\/]+/,"").trim().toLowerCase()};const half=q.match(/^(\d+)\/(\d+)/);if(half)return{value:parseInt(half[1])/parseInt(half[2]),unit:q.replace(/^[\d\/]+/,"").trim().toLowerCase()};const plain=q.match(/^([\d\.]+)\s*(.*)/);if(plain)return{value:parseFloat(plain[1]),unit:plain[2].trim().toLowerCase()};return null;}
-  function toBase(val,unit){if(/^kg/.test(unit))return{value:val*1000,base:"g"};if(/^g/.test(unit))return{value:val,base:"g"};if(/^l$/.test(unit))return{value:val*1000,base:"ml"};if(/^ml/.test(unit))return{value:val,base:"ml"};if(/^cup/.test(unit))return{value:val,base:"cup"};if(/^tbsp|tablespoon/.test(unit))return{value:val,base:"tbsp"};if(/^tsp|teaspoon/.test(unit))return{value:val,base:"tsp"};if(unit==="")return{value:val,base:""};return null;}
-  function fmt(val,base){if(base==="g")return val>=1000?(val/1000).toFixed(1).replace(/\.0$/,"")+"kg":val+"g";if(base==="ml")return val>=1000?(val/1000).toFixed(1).replace(/\.0$/,"")+"L":val+"ml";if(base==="cup")return val+(val===1?" cup":" cups");if(base==="tbsp")return val+" tbsp";if(base==="tsp")return val+" tsp";if(base==="")return String(val);return String(val)+" "+base;}
-  const pa=parse(a),pb=parse(b);if(!pa||!pb)return a+" + "+b;
+  a=a.trim();b=b.trim();
+  function parse(q){
+    q=q.trim();
+    const frac=q.match(/^(\d+)\s+(\d+)\/(\d+)/);
+    if(frac)return{value:parseInt(frac[1])+parseInt(frac[2])/parseInt(frac[3]),unit:q.replace(/^[\d\s\/]+/,"").trim().toLowerCase()};
+    const half=q.match(/^(\d+)\/(\d+)/);
+    if(half)return{value:parseInt(half[1])/parseInt(half[2]),unit:q.replace(/^[\d\/]+/,"").trim().toLowerCase()};
+    const plain=q.match(/^([\d\.]+)\s*(.*)/);
+    if(plain)return{value:parseFloat(plain[1]),unit:plain[2].trim().toLowerCase()};
+    return null;
+  }
+  function toBase(val,unit){
+    if(/^kg/.test(unit))return{value:val*1000,base:"g"};
+    if(/^g$|^gram/.test(unit))return{value:val,base:"g"};
+    if(/^l$/.test(unit))return{value:val*1000,base:"ml"};
+    if(/^ml/.test(unit))return{value:val,base:"ml"};
+    if(/^cups?$/.test(unit))return{value:val,base:"cup"};
+    if(/^tbsp|^tablespoon/.test(unit))return{value:val,base:"tbsp"};
+    if(/^tsp|^teaspoon/.test(unit))return{value:val,base:"tsp"};
+    if(/^cloves?$/.test(unit))return{value:val,base:"cloves"};
+    if(/^bunch(es)?$/.test(unit))return{value:val,base:"bunch"};
+    if(/^pack(s)?$/.test(unit))return{value:val,base:"packs"};
+    if(unit==="")return{value:val,base:""};
+    return null;
+  }
+  function fmt(val,base){
+    // Clean integer display
+    const n=val===Math.floor(val)?Math.floor(val):Math.round(val*100)/100;
+    if(base==="g"){const kg=n/1000;return n>=1000?`${kg===Math.floor(kg)?Math.floor(kg):kg}kg`:`${n}g`;}
+    if(base==="ml"){const l=n/1000;return n>=1000?`${l===Math.floor(l)?Math.floor(l):l}L`:`${n}ml`;}
+    if(base==="cup")return n===1?`1 cup`:`${n} cups`;
+    if(base==="tbsp")return`${n} tbsp`;
+    if(base==="tsp")return`${n} tsp`;
+    if(base==="cloves")return`${n} cloves`;
+    if(base==="bunch")return n===1?`1 bunch`:`${n} bunches`;
+    if(base==="packs")return n===1?`1 pack`:`${n} packs`;
+    if(base==="")return`${n}`;
+    return`${n} ${base}`;
+  }
+  const pa=parse(a),pb=parse(b);
+  if(!pa||!pb)return a+" + "+b;
   const ba=toBase(pa.value,pa.unit),bb=toBase(pb.value,pb.unit);
-  if(ba&&bb&&ba.base===bb.base){const t=Math.round((ba.value+bb.value)*100)/100;return fmt(t,ba.base);}
+  if(ba&&bb&&ba.base===bb.base){
+    const t=Math.round((ba.value+bb.value)*100)/100;
+    return fmt(t,ba.base);
+  }
   return a+" + "+b;
 }
 
@@ -464,6 +503,80 @@ function guessAisle(n){
 }
 
 // ── SHOPPING LIST BUILDER ─────────────────────────────────────────
+function getSmartHint(name, qty){
+  const n=name.toLowerCase().trim();
+  if(!qty)return null;
+  const q=qty.trim();
+
+  // Helper: parse a number from the front of a qty string
+  const num=s=>{const m=s.match(/^(\d+\.?\d*)/);return m?parseFloat(m[1]):null;};
+  const v=num(q);
+
+  // Garlic → bulbs (≈10 cloves per bulb)
+  if(n.includes("garlic")&&/clove/i.test(q)&&v){
+    const bulbs=Math.ceil(v/10);
+    return `≈ ${bulbs} bulb${bulbs>1?"s":""}`;
+  }
+
+  // Lemons / limes → just confirm total (they're individual items)
+  if((n==="lemons"||n==="lemon"||n==="limes"||n==="lime")&&v&&v>=4)
+    return `${v} individual`;
+
+  // Brown / red onions → bag hint (bags usually ~6)
+  if((n.includes("brown onion")||n.includes("red onion"))&&!n.includes("spring")&&v){
+    if(v<=3)return `${v} individual`;
+    return `≈ 1 bag`;
+  }
+
+  // Potatoes → kg hint
+  if(n.includes("potato")&&!n.includes("sweet")){
+    const m=q.match(/(\d+)g/i);
+    if(m){const kg=(parseInt(m[1])/1000).toFixed(1).replace(/\.0$/,"");return `${kg}kg bag`;}
+  }
+
+  // Beef mince → pack hint (500g packs)
+  if(n.includes("beef mince")||n.includes("mince")){
+    const m=q.match(/(\d+)g/i)||q.match(/(\d+)kg/i);
+    if(m){
+      const g=q.includes("kg")?parseFloat(m[1])*1000:parseInt(m[1]);
+      const packs=Math.ceil(g/500);
+      return `${packs} × 500g pack${packs>1?"s":""}`;
+    }
+  }
+
+  // Chicken breast/thighs → pack hint (≈500g per pack)
+  if(n.includes("chicken breast")||n.includes("chicken thigh")){
+    const m=q.match(/(\d+)g/i);
+    if(m){
+      const g=parseInt(m[1]);
+      if(g>500){const packs=Math.ceil(g/500);return `${packs} × 500g pack${packs>1?"s":""}`;}
+    }
+  }
+
+  // Spaghetti / pasta → packet hint (500g packets)
+  if(/spaghetti|fettuccine|penne|rigatoni|risoni|lasagne|pasta/.test(n)){
+    const m=q.match(/(\d+)g/i);
+    if(m){
+      const g=parseInt(m[1]);
+      if(g>300){const packs=Math.ceil(g/500);return `${packs} × 500g pack${packs>1?"s":""}`;}
+    }
+  }
+
+  // Parmesan → block hint
+  if(n.includes("parmesan")){
+    const m=q.match(/(\d+)g/i);
+    if(m&&parseInt(m[1])>50)return `${parseInt(m[1])/50} serves`;
+  }
+
+  // Tbsp → indicate if it's a lot
+  if(/tbsp/.test(q)&&v&&v>=4)return `${Math.ceil(v/16)} bottle`;
+
+  // tsp — no hint needed, small amounts
+  // Cups — no hint needed, measure at home
+
+  return null;
+}
+
 // Always-excluded ingredients (subscriptions / always stocked)
 const ALWAYS_HAVE=["olive oil","salt","pepper","salt & pepper","salt and pepper","salt & pepper to taste","sea salt","black pepper","white pepper"];
 function alwaysHave(name){
@@ -513,11 +626,14 @@ function buildList(){
         const ex=map[ak].find(i=>{const ek=normName(i.n).split(/\s+/).slice(0,3).join(" ");return ek===nk||ek.includes(nk)||nk.includes(ek);});
         if(ex){
           if(!ex.recipes)ex.recipes=[];
-          if(!ex.recipes.find(r=>r.id===meal.id))ex.recipes.push({id:meal.id,name:meal.name,color:col,batch:rec.batch});
-          if(qty&&ex.q&&ex.q!==qty&&!ex.q.includes(qty))ex.q=mergeQty(ex.q,qty);
-          else if(qty&&!ex.q)ex.q=qty;
+          if(!ex.recipes.find(r=>r.id===meal.id))ex.recipes.push({id:meal.id,name:meal.name,color:col,batch:rec.batch,qty:qty});
+          if(qty&&ex.q){
+            // If existing entry is a staple, replace qty with recipe qty (don't add standing stock)
+            if(ex.staple){ ex.q=qty; ex.staple=false; }
+            else ex.q=mergeQty(ex.q,qty);
+          } else if(qty&&!ex.q) ex.q=qty;
         }else{
-          map[ak].push({n:nm,q:qty,staple:false,recipes:[{id:meal.id,name:meal.name,color:col,batch:rec.batch}]});
+          map[ak].push({n:nm,q:qty,staple:false,recipes:[{id:meal.id,name:meal.name,color:col,batch:rec.batch,qty:qty}]});
         }
       });
     });
@@ -572,7 +688,19 @@ function buildList(){
       const nk=normName(item.n).split(/\s+/).slice(0,3).join(" ");
       if(seen[nk]){
         const ex=seen[nk];
-        if(item.q&&ex.q&&item.q!==ex.q&&!ex.q.includes(item.q))ex.q=mergeQty(ex.q,item.q);
+        // If one is a staple and the other a recipe entry, keep recipe qty only
+        if(item.staple&&!ex.staple){
+          // incoming is staple, existing is recipe — discard staple, keep recipe
+          return false;
+        }
+        if(!item.staple&&ex.staple){
+          // incoming is recipe, existing is staple — replace staple qty with recipe qty
+          ex.q=item.q;ex.staple=false;
+          if(item.recipes)item.recipes.forEach(r=>{if(!ex.recipes.find(x=>x.id===r.id))ex.recipes.push(r);});
+          return false;
+        }
+        // Both recipe entries — always merge
+        if(item.q&&ex.q){const exNum=/\d/.test(ex.q);if(!exNum)ex.q=item.q;else ex.q=mergeQty(ex.q,item.q);}
         else if(item.q&&!ex.q)ex.q=item.q;
         if(item.recipes)item.recipes.forEach(r=>{if(!ex.recipes.find(x=>x.id===r.id))ex.recipes.push(r);});
         return false;
@@ -718,14 +846,26 @@ function rList(){
       aisle.items.forEach((item,ii)=>{
         const key=aisle.key+"-"+ii;const dn=S.checked[key];const skipped=S.skipped[aisle.key+":"+item.n];
         let badges="";if(item.recipes&&item.recipes.length)item.recipes.forEach(r=>{badges+=`<span class="sbadge" style="background:${r.color}15;color:${r.color};border:1px solid ${r.color}30">${esc(r.name)}${r.batch?" 📦":""}</span>`;});
+        // Build per-recipe breakdown
+        const breakdown=(item.recipes&&item.recipes.length>1)?item.recipes:[];
+        const hint=!dn&&!skipped?getSmartHint(item.n,item.q):null;
         h+=`<div class="srow${skipped?" is-skipped":""}" onclick="chk('${key}')">
           <div class="chk${dn?" done":skipped?" skipped":""}">${dn?"✓":skipped?"✕":""}</div>
           <div class="sinfo">
-            <div class="snm${dn||skipped?" done":""}">${esc(item.n)}</div>
-            ${item.q?`<div class="sqty">${esc(item.q)}</div>`:""}
-            ${!dn&&!skipped&&badges?`<div class="sbadges">${badges}</div>`:""}
+            <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+              <span class="snm${dn||skipped?" done":""}">${esc(item.n)}</span>
+              ${item.q?`<span class="sqty" style="font-size:12px">${esc(item.q)}</span>`:""}
+              ${hint?`<span style="font-size:10px;color:var(--green);background:#E8F2E8;padding:1px 7px;border-radius:8px;white-space:nowrap">${hint}</span>`:""}
+            </div>
+            ${!dn&&!skipped&&breakdown.length?`
+            <div style="margin-top:6px;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;gap:1px">
+              ${breakdown.map(r=>`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:4px 9px;background:${r.color}12;border-left:3px solid ${r.color}">
+                <span style="font-size:10.5px;color:${r.color};font-weight:500">${esc(r.name)}</span>
+                <span style="font-size:10.5px;color:${r.color};font-weight:500;white-space:nowrap;flex-shrink:0">${esc(r.qty||"")}</span>
+              </div>`).join("")}
+            </div>`:""}
           </div>
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:6px">
             ${skipped
               ?`<span onclick="event.stopPropagation();restoreSkip('${aisle.key}','${esc(item.n)}')" style="font-size:11px;font-weight:500;color:var(--green);cursor:pointer;padding:4px 2px;white-space:nowrap">Restore</span>`
               :!dn?`<span onclick="event.stopPropagation();skipItem('${aisle.key}','${esc(item.n)}')" style="font-size:11px;font-weight:500;color:var(--red);cursor:pointer;padding:4px 2px;white-space:nowrap">Skip</span>`:""}
